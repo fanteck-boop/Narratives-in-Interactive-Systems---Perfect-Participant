@@ -74,7 +74,7 @@ OPEN items from the last session, in order:
 
 ## Git state
 Remote `origin` = https://github.com/fanteck-boop/Narratives-in-Interactive-Systems---Perfect-Participant.git, branch `main`. Git LFS 3.7.1 installed, `git lfs install --local` done; 159 LFS-tracked files. `.gitattributes` sends png jpg tga psd exr fbx obj blend wav mp3 ogg mp4 zip apk to LFS and sets `merge=unityyamlmerge` on unity prefab asset mat anim controller; the unityyamlmerge driver path is NOT configured (set it per machine in local git config, path to UnityYAMLMerge.exe in the editor install).
-Commits (oldest first): 51f7beb Initial commit, 25b3752 Memory files for narratives, 2fcc5c9 gitignore/gitattributes/vsconfig, 3ac6180 Unity project base (packages, settings, template, samples), f0c48f6 game code, tests, Lab scene, materials, dialogue data, 91d4774 CLAUDE.md and HANDOFF.md. Later commits (HANDOFF rewrite, push record) are in the Session log; run `git log --oneline` for the truth. Push status: see the last Session log line.
+Commits (oldest first): 51f7beb Initial commit, 25b3752 Memory files for narratives, 2fcc5c9 gitignore/gitattributes/vsconfig, 3ac6180 Unity project base (packages, settings, template, samples), f0c48f6 game code, tests, Lab scene, materials, dialogue data, 91d4774 CLAUDE.md and HANDOFF.md. Later commits (HANDOFF rewrite, push record) are in the Session log; run `git log --oneline` for the truth. Push status: all commits through c9fee1c pushed to origin/main.
 
 ### Git workflow rules for the team
 - Large binaries go through LFS (already tracked by extension). After cloning run `git lfs install` then `git lfs pull`. Check GitHub LFS quota before pushing big assets (audio takes are wav, so LFS).
@@ -128,4 +128,4 @@ Do not add `-quit` with `-runTests`. Passing: exit code 0, `results.xml` shows `
 - 2026-10-20: Package E (debug panel) written and wired, scene rebuilt. Package D done in files via ConfigureQuestBuild.cs.
 - 2026-10-20: Part 1 fixes: doorway + ExitBooth, kinematic door, poke axis verified, SeatedMode MVP, DeskPlaythroughTests. Compile clean, 92/92, scene rebuilt, Validate OK. Nothing seen visually.
 - 2026-10-20: Git: LFS configured, 4 local commits (2fcc5c9, 3ac6180, f0c48f6, 91d4774) on top of 51f7beb and 25b3752.
-- 2026-10-20: Final hand-off rewrite of HANDOFF.md (this file), all open items listed in Next steps. Push to origin/main follows.
+- 2026-10-20: Final hand-off rewrite of HANDOFF.md (c9fee1c), open items in Next steps. Pushed origin/main, remote head = c9fee1c, 159 LFS files.
