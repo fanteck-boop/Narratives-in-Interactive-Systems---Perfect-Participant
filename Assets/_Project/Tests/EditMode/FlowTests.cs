@@ -195,5 +195,44 @@ namespace PerfectParticipant.Tests
             Assert.IsTrue(cmds.Any(c => c.Kind == CommandKind.Classified && c.Subtype == Subtype.Throw));
             Assert.IsTrue(f.Model.Has(Flag.ThrewCube));
         }
+
+        [Test] public void SetComposure_SendsComposureAndTierOnChangeOnly()
+        {
+            var f = new ExperimentFlow();
+            f.JumpTo(GameState.Test1);
+            var cmds = f.SetComposure(40);
+            Assert.IsTrue(cmds.Any(c => c.Kind == CommandKind.SetComposure && c.Value == 40));
+            Assert.IsTrue(cmds.Any(c => c.Kind == CommandKind.SetTier && c.Tier == Tier.Unclassified));
+            Assert.AreEqual(0, f.SetComposure(40).Count);
+        }
+
+        static bool CardShown(List<Command> cmds) => cmds.Any(c => c.Kind == CommandKind.ShowCard && c.Id == Cards.None);
+
+        [Test] public void E3Card_WaitsForStillness_MovingResetsTimer()
+        {
+            var f = new ExperimentFlow();
+            f.JumpTo(GameState.EndE3);
+            var i = Idle();
+            for (float t = 0f; t < 40f; t += Dt)
+            {
+                i.HeadX = (int)(t / 1f) % 2 == 0 ? 0f : 0.3f; // steps 0.3 m every second
+                Assert.IsFalse(CardShown(f.Tick(Dt, i)), "card while moving at " + t);
+            }
+            float still = 0f; bool shown = false;
+            for (; still < 30f && !shown; still += Dt) shown = CardShown(f.Tick(Dt, i));
+            Assert.IsTrue(shown);
+            Assert.AreEqual(Refusal.StillBeforeCard, still, 1f);
+            Assert.IsTrue(f.Finished);
+        }
+
+        [Test] public void E3Card_ShowsWhenPlayerWalksThroughDoor()
+        {
+            var f = new ExperimentFlow();
+            f.JumpTo(GameState.EndE3);
+            var i = Idle();
+            f.Tick(Dt, i);
+            i.HeadZ = Refusal.DoorZ - 0.5f;
+            Assert.IsTrue(CardShown(f.Tick(Dt, i)));
+        }
     }
 }

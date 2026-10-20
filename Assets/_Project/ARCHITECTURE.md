@@ -20,6 +20,7 @@ class ExperimentFlow {
   List<Command> Tick(float dt, in FrameInput i);   // first call enters Intake
   List<Command> Force(ResponseKind k, Subtype s);  // debug: resolve running test
   List<Command> JumpTo(GameState s);               // debug
+  List<Command> SetComposure(int v);               // debug: SetComposure/SetTier on change
 }
 class BehaviourModel { int C, D, I, Composure; Tier Tier; Flag Flags; ResponseKind PrologueResponse;
   void Apply(ResponseKind r); void AddComposure(int d); void SetComposure(int v);

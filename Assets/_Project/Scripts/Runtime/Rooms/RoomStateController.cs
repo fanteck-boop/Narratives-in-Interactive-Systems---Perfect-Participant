@@ -64,6 +64,8 @@ namespace PerfectParticipant
         Vector3 clipPos, cubePos, voiceLocal;
         Quaternion clipRot, cubeRot;
         bool voiceHomeSet;
+        ConfigurableJoint tether;
+        LineRenderer tetherLine;
 
         static Color Green => new Color(0.1f, 0.9f, 0.25f);
         static Color Amber => new Color(1f, 0.55f, 0.1f);
@@ -245,7 +247,12 @@ namespace PerfectParticipant
 
         // ---------- effects ----------
 
-        public void Rehome() { if (cube) { cubePos = cube.position; cubeRot = cube.rotation; } } // SeatedMode moved the cube
+        public void Rehome() // SeatedMode moved the cube
+        {
+            if (!cube) return;
+            cubePos = cube.position; cubeRot = cube.rotation;
+            if (tether) tether.connectedAnchor = TetherAnchor;
+        }
 
         void ResetRoom()
         {
@@ -277,7 +284,40 @@ namespace PerfectParticipant
             SetLed("LED_Camera", Red);
         }
 
-        void ApplyProps() { foreach (var p in props) p.t.gameObject.SetActive(p.tier == tier); }
+        void ApplyProps()
+        {
+            foreach (var p in props) p.t.gameObject.SetActive(p.tier == tier);
+            Tether(tier == Tier.Flagged);
+        }
+
+        // Flagged prop (brief): steel tether from the table to the cube. Joint keeps a thrown cube within reach.
+        const float TetherLength = 0.7f;
+        Vector3 TetherAnchor => cubePos + Vector3.down * 0.04f; // table top under the cube's home spot
+
+        void Tether(bool on)
+        {
+            if (!cube) return;
+            if (on && !tether && cube.TryGetComponent<Rigidbody>(out _))
+            {
+                tether = cube.gameObject.AddComponent<ConfigurableJoint>();
+                tether.autoConfigureConnectedAnchor = false;
+                tether.anchor = Vector3.zero;
+                tether.connectedAnchor = TetherAnchor; // world space: no connected body
+                tether.xMotion = tether.yMotion = tether.zMotion = ConfigurableJointMotion.Limited;
+                tether.linearLimit = new SoftJointLimit { limit = TetherLength };
+            }
+            else if (!on && tether) { Destroy(tether); tether = null; }
+
+            if (on && !tetherLine)
+            {
+                tetherLine = new GameObject("CubeTether").AddComponent<LineRenderer>();
+                tetherLine.positionCount = 2;
+                tetherLine.widthMultiplier = 0.005f;
+                tetherLine.sharedMaterial = new Material(Shader.Find("Sprites/Default")) { color = new Color(0.55f, 0.57f, 0.6f) }; // ponytail: unlit grey, steel material later
+                tetherLine.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
+            if (tetherLine) tetherLine.enabled = on;
+        }
 
         void SetObs(Obs o) { obs = o; obsT = 0f; }
 
@@ -348,6 +388,8 @@ namespace PerfectParticipant
                 l.cur = Color.Lerp(l.cur, l.tgt, la);
                 l.m.SetColor("_EmissionColor", l.cur * 2.5f);
             }
+
+            if (tetherLine && tetherLine.enabled) { tetherLine.SetPosition(0, TetherAnchor); tetherLine.SetPosition(1, cube.position); }
 
             UpdateObservers(dt);
         }

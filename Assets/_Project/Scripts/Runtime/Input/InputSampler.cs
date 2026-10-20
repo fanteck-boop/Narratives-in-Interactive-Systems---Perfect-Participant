@@ -158,7 +158,7 @@ namespace PerfectParticipant
                 if (f.CubeInTray && !pInTray) Raise(PlayerEventType.CubeInTray);
                 pInTray = f.CubeInTray;
 
-                // ponytail: no tether when Flagged (needs Tier from runner), respawn only
+                // Flagged tether lives in RoomStateController; respawn covers every tier
                 offTime = f.CubeOffTable && !f.CubeOnButton ? offTime + dt : 0f;
                 if (offTime > respawnAfter) { c.Respawn(); offTime = 0f; Raise(PlayerEventType.CubeRespawned); }
             }

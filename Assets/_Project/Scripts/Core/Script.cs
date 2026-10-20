@@ -146,7 +146,9 @@ namespace PerfectParticipant.Core
             new RefusalStep(30f, "R-06", RoomEvents.DoorUnlockHeavy),
         };
 
-        public const float CardAfterDoor = 20f; // ponytail: fixed 20 s, ignores whether player moves
+        // Brief E3: card when the player has not moved for 20 s after the door opens, or walks out through it.
+        public const float StillBeforeCard = 20f, StillMove = 0.15f; // head drift under StillMove (m) counts as still
+        public const float DoorZ = -2f, ThroughDoor = 0.3f;           // south doorway plane; out = HeadZ < DoorZ - ThroughDoor
     }
 
     public static class Cards

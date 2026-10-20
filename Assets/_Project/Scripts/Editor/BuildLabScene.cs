@@ -42,7 +42,7 @@ namespace PerfectParticipant.Editor
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             RenderSettings.skybox = null;
             RenderSettings.ambientMode = AmbientMode.Flat;
-            RenderSettings.ambientLight = new Color(0.2f, 0.19f, 0.18f);
+            RenderSettings.ambientLight = new Color(0.45f, 0.44f, 0.42f); // gamma value; 0.2 is ~0.03 linear and rendered near black
 
             Shell(); Window(); Tally(); Cork(); ConsoleObj(); TableObj(); DoorObj(); Shelf(); ChairObj();
             CeilingProps(); Tape(); Lights(); Rig(); Systems();
@@ -88,6 +88,9 @@ namespace PerfectParticipant.Editor
                 m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
                 m.SetShaderPassEnabled("ShadowCaster", false);
                 m.renderQueue = (int)RenderQueue.Transparent;
+                // no reflection probe in the room: default sky reflection painted a horizon on the glass
+                m.SetFloat("_EnvironmentReflections", 0f);
+                m.EnableKeyword("_ENVIRONMENTREFLECTIONS_OFF");
             }
             EditorUtility.SetDirty(m);
             return mats[key] = m;
@@ -167,7 +170,7 @@ namespace PerfectParticipant.Editor
             // observer booth behind the window + silhouettes (inactive until used)
             var booth = E("ObservationBooth", null, Vector3.zero).transform;
             var dark = M("Dark", G(0.05f), 0.05f);
-            Cb("BoothBack", booth, new Vector3(0, 1.3f, 3.35f), new Vector3(4.2f, 2.6f, 0.1f), dark);
+            Cb("BoothBack", booth, new Vector3(0, 1.3f, 3.35f), new Vector3(4.2f, 2.6f, 0.1f), M("BoothBack", G(0.4f), 0.05f)); // lit backdrop: dark silhouettes read against it
             Cb("BoothFloor", booth, new Vector3(0, -0.05f, 2.7f), new Vector3(4.2f, 0.1f, 1.2f), dark);
             Cb("BoothCeiling", booth, new Vector3(0, 2.65f, 2.7f), new Vector3(4.2f, 0.1f, 1.2f), dark);
             Cb("BoothWest", booth, new Vector3(-2.05f, 1.3f, 2.7f), new Vector3(0.1f, 2.6f, 1.2f), dark);
@@ -181,7 +184,7 @@ namespace PerfectParticipant.Editor
         static void Window()
         {
             var w = E("ObservationWindow", null, new Vector3(0, 1.5f, 2f)).transform;
-            Qd("Glass", w, new Vector3(0, 0, -0.012f), new Vector2(1.5f, 1.2f), M("Glass", new Color(0.03f, 0.05f, 0.07f, 0.88f), 0.9f, null, true));
+            Qd("Glass", w, new Vector3(0, 0, -0.012f), new Vector2(1.5f, 1.2f), M("Glass", new Color(0.03f, 0.05f, 0.07f, 0.7f), 0.9f, null, true));
             var f = M("Trim", G(0.12f));
             Cb("FrameTop", w, new Vector3(0, 0.62f, -0.02f), new Vector3(1.62f, 0.04f, 0.04f), f);
             Cb("FrameBottom", w, new Vector3(0, -0.62f, -0.02f), new Vector3(1.62f, 0.04f, 0.04f), f);
@@ -417,8 +420,8 @@ namespace PerfectParticipant.Editor
                 li.type = LightType.Point; li.color = c; li.range = range; li.intensity = intensity; li.shadows = LightShadows.None;
                 return li;
             }
-            L("RoomLight_Ceiling", new Vector3(0, 2.35f, 0), new Color(1f, 0.85f, 0.65f), 6.5f, 2f); // warm default
-            L("BoothLight", new Vector3(0, 2.2f, 2.7f), new Color(0.6f, 0.75f, 1f), 2.5f, 0.8f);
+            L("RoomLight_Ceiling", new Vector3(0, 2.35f, 0), new Color(1f, 0.85f, 0.65f), 7f, 4f); // warm default; 2 left the walls near black (Docs/screenshots)
+            L("BoothLight", new Vector3(0, 2.2f, 2.9f), new Color(0.6f, 0.75f, 1f), 1.6f, 2.5f); // short range: no shadows, keep it out of the room
         }
 
         static void Rig()

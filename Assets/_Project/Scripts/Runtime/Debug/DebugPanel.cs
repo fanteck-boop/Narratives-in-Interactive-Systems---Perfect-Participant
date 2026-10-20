@@ -56,7 +56,7 @@ namespace PerfectParticipant
             GUILayout.BeginHorizontal();
             GUILayout.Label("Composure " + m.Composure, GUILayout.Width(95));
             int c = Mathf.RoundToInt(GUILayout.HorizontalSlider(m.Composure, 0, 100));
-            if (c != m.Composure) m.SetComposure(c); // ponytail: model only, no SetComposure command so room does not follow; use JumpTo to resync
+            if (c != m.Composure) runner.SetComposure(c);
             GUILayout.EndHorizontal();
 
             GUILayout.Label("Force current test");
@@ -80,7 +80,7 @@ namespace PerfectParticipant
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Restart")) { runner.Restart(); log.Clear(); line = ""; }
+            if (GUILayout.Button("Restart")) { Time.timeScale = 1f; runner.Restart(); }
             var seat = FindFirstObjectByType<SeatedMode>();
             if (seat && GUILayout.Button("Seated " + (SeatedMode.Seated ? "on" : "off"))) seat.Toggle();
             if (dialogue)

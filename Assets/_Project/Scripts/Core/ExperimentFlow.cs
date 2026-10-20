@@ -18,7 +18,8 @@ namespace PerfectParticipant.Core
         readonly List<Command> _out = new List<Command>();
         readonly Queue<(float delay, Action run)> _steps = new Queue<(float, Action)>();
         float _wait;
-        bool _started, _listening;
+        bool _started, _listening, _e3Wait, _e3Anchored;
+        float _stillT, _ax, _az;
         int _t3StartComposure, _lastComposure = 100;
         Tier _lastTier = Tier.Neutral;
         IntakeClassifier _intake; Test1Classifier _t1; Test2Classifier _t2; Test3Classifier _t3;
@@ -39,6 +40,7 @@ namespace PerfectParticipant.Core
                 if (!i.NarratorBusy && (_wait += dt) >= _steps.Peek().delay) { _wait = 0f; _steps.Dequeue().run(); }
                 return _out;
             }
+            if (_e3Wait) { E3Wait(dt, i); return _out; }
             if (!_listening) return _out;
 
             Verdict v; TestId test;
@@ -77,6 +79,15 @@ namespace PerfectParticipant.Core
             _out.Clear(); _started = true;
             if (s == GameState.Refusal) _t3StartComposure = Model.Composure;
             Enter(s);
+            return _out;
+        }
+
+        // Debug: set composure and tell the room (SetComposure / SetTier on change).
+        public List<Command> SetComposure(int v)
+        {
+            _out.Clear();
+            Model.SetComposure(v);
+            Sync();
             return _out;
         }
 
@@ -122,7 +133,7 @@ namespace PerfectParticipant.Core
 
         void Enter(GameState s)
         {
-            State = s; StateTime = 0f; _steps.Clear(); _wait = 0f; _listening = false;
+            State = s; StateTime = 0f; _steps.Clear(); _wait = 0f; _listening = false; _e3Wait = false;
             _out.Add(Command.To(s));
             switch (s)
             {
@@ -170,7 +181,7 @@ namespace PerfectParticipant.Core
                 case GameState.EndE3:
                     Ending = EndingId.E3;
                     Do(Refusal.Steps[Refusal.Steps.Length - 1]);
-                    Then(Refusal.CardAfterDoor, () => Card(Cards.None, Cards.NoneSub));
+                    _e3Wait = true; _e3Anchored = false; _stillT = 0f;
                     break;
             }
         }
@@ -185,6 +196,22 @@ namespace PerfectParticipant.Core
             Play("R-C");
             Ending = Model.PickEnding(ResponseKind.Inaction, true);
             Then(AfterReaction, () => Enter(GameState.EndE2));
+        }
+
+        // E3 after the door opens: card once still for StillBeforeCard, or out through the door.
+        void E3Wait(float dt, in FrameInput i)
+        {
+            float dx = i.HeadX - _ax, dz = i.HeadZ - _az;
+            if (!_e3Anchored || dx * dx + dz * dz > Refusal.StillMove * Refusal.StillMove)
+            {
+                _e3Anchored = true; _ax = i.HeadX; _az = i.HeadZ; _stillT = 0f;
+            }
+            else _stillT += dt;
+            if (_stillT >= Refusal.StillBeforeCard || i.HeadZ < Refusal.DoorZ - Refusal.ThroughDoor)
+            {
+                _e3Wait = false;
+                Card(Cards.None, Cards.NoneSub);
+            }
         }
 
         void Then(float delay, Action run) => _steps.Enqueue((delay, run));

@@ -7,7 +7,7 @@ Read order for a fresh Claude: this file, `CLAUDE.md`, `Assets/_Project/ARCHITEC
 Playable Quest prototype of The Perfect Participant (course NIS 2026, AAU): Intake, three tests, three endings, per the design brief. A polite narrator reframes every player action as cooperation; only doing nothing breaks it. Code contract: `Assets/_Project/ARCHITECTURE.md`. Rule: all gameplay logic in `PerfectParticipant.Core` (pure C#, unit tested); Unity layer only fills `FrameInput` and turns `Command`s into effects.
 
 ## Current status (as of 2026-10-20)
-All packages A to F are written and integrated. Compile clean (zero `error CS`, only CS0618 FindObjectsByType warnings). 92/92 EditMode tests green. `Scenes/Lab.unity` builds in batchmode and `ValidateScene` reports OK. Committed. Pushed state: see Git state. NOBODY HAS OPENED Lab.unity OR PLAYED IT. Everything visual, XR and audio is unverified.
+All packages A to F are written and integrated. Compile clean (zero `error CS`, only CS0618 FindObjectsByType warnings). 95/95 EditMode tests green. `Scenes/Lab.unity` builds in batchmode and `ValidateScene` reports OK. NOBODY HAS PLAYED IT. The static scene has now been seen as rendered stills (`Docs/screenshots/`, menu `Perfect Participant/Capture Screenshots`); play mode, XR and audio are still unverified.
 
 | Package | Status | Where |
 |---|---|---|
@@ -36,14 +36,16 @@ All packages A to F are written and integrated. Compile clean (zero `error CS`, 
 13. Consent poke: `PokeAxis.NegativeY` (finger from above pushes the cap down). Console has no `XRPokeFilter`, so it cannot steal the poke.
 14. Seated mode: fixed anchors (see Package F). Classification rules unchanged; only `ReadingForm` distance (1.0 m seated, 0.5 standing) and `DistFromMark` origin (MarkZone position) differ.
 15. Door: south wall has a real 0.9 x 2.1 m doorway; leaf swings OUT into `ExitBooth` (`doorOpenAngle` = +75, by geometry only).
+16. E3 card (brief): after R-06 the card shows once the head has stayed within 0.15 m for 20 s (`Refusal.StillBeforeCard`, `StillMove`), or at once when the head passes `Refusal.DoorZ - ThroughDoor` (walked out). Moving resets the timer. Replaces the fixed 20 s.
+17. Flagged tether: `RoomStateController` adds a `ConfigurableJoint` (0.7 m linear limit, world anchor under the cube's home spot) plus a grey `CubeTether` line while tier = Flagged, removed on any other tier. Respawn after 5 s still applies in every tier.
+18. Debug: composure slider goes through `ExperimentFlow.SetComposure` (sends SetComposure/SetTier, so lights and props follow). Restart reloads the scene (full reset of room, dialogue, logger).
+19. Lighting: Unity colours are gamma values in a linear project, so ambient 0.2 was about 0.03 linear and the room rendered near black. Now ambient 0.45, `RoomLight_Ceiling` intensity 4 (range 7). Glass alpha 0.7 with environment reflections off (the default sky reflection painted a horizon on it). `BoothBack` is mid grey (`M_BoothBack`) and `BoothLight` 2.5 with range 1.6, so the dark silhouettes read against it.
 
 ## Known issues
 - Door is at z = -2, about 2 m from the mark: outside the 2 x 2 m play area and the brief's "all interactables within 1.2 m". Decision pending: move the door closer or accept walking.
-- Desktop: S key (seated toggle) also walks the rig back while the content note shows.
-- Composure slider in DebugPanel sets Model only (no SetComposure command): lights and tier props do not follow until the next change.
-- Debug Restart swaps only the Flow; room, dialogue and logger state are not reset (reload the scene for a clean run).
-- Cube is not tethered in the Flagged tier (needs Tier in the input layer). Respawn is only after 5 s off table and off button.
-- E3 card shows 20 s after R-06 regardless of movement (brief: fade if still 20 s).
+- Tether is untested in play: a desktop carry (kinematic) beyond 0.7 m snaps back on release; on Quest the joint fights an XRI grab past the limit (intended feel, check it is not violent). Line is unlit grey, no steel material.
+- Respawn is only after 5 s off table and off button.
+- Lighting is realtime greybox, not baked (brief plans the bake in week 3). Values tuned from stills only, not in the headset.
 - Seated mode: window anchor not moved, cube/tray carried with table, anchors are guesses, no persistence across scene reload, toggle only meaningful before start, a seated player is assumed centred on Spawn.
 - Interlude line BR-* plays at the end of Test 2, before the Test 3 transition.
 - `HandsIdle` rest pose = first frame; zone seed uses AABB; desktop room clamp +-1.9 m with no collision.
@@ -63,10 +65,10 @@ OPEN items from the last session, in order:
 3. Real Quest test: grab and poke on the Starter Assets rig (cube, console, clipboard, chair, door handle locked), consent button poke (poke attach must reach the cap base, 3 cm travel), seated anchors are guesses (reach, table x 0.25..0.95, console x -0.9..-0.3), `SnapTurnProvider` enabled only when seated, recenter the headset so the seated player sits on Spawn.
 4. Android build chain: Unity Hub > Installs > 6000.6.0f1 > Add modules: Android Build Support, OpenJDK, Android SDK and NDK Tools. Switch platform (menu `Perfect Participant/Configure Quest Build` or File > Build Profiles). Meta developer mode on the headset (needs a Meta developer org account), USB debugging, `adb devices`. `HandTrackingManifest` (adds `oculus.software.handtracking` required=false and `com.oculus.permission.HAND_TRACKING`) is untested and the generated AndroidManifest.xml was never inspected. Fix the XR Plug-in Management > Project Validation Android warnings. Target 72 Hz (Quest 2 default); check with OVR Metrics Tool. See Package D for the full steps.
 5. Narrator voice: only placeholder generated audio exists (murmur, 0.06 s/char). About 65 recorded takes are needed; the list lives in `Perfect_Participant_Design_Brief.md`, line ids in `Scripts/Core/Script.cs`. Record a human voice, disclose it in DRIS 4b, drop clips in `Assets/_Project/Audio/VO/<id>_clean.wav` and `<id>_slipped.wav`, then run menu `Perfect Participant > Generate Dialogue Lines`. Slipped takes only matter at composure <= 60.
-6. Fix known flaws: S key walks the rig back while the content note shows on desktop; composure slider does not drive lights (add a SetComposure command or call the room controller); Restart does not reset room/dialogue/logger; cube not tethered in Flagged tier; door about 2 m from the mark, outside the 1.2 m reach rule (decision pending).
+6. Known flaws: S key, composure slider, Restart, Flagged tether and E3 stillness are fixed (2026-10-20, see Decisions 16 to 18). Still open: door about 2 m from the mark, outside the 1.2 m reach rule (decision pending).
 7. Opus-level code review of the whole build has not been done. Do it before the final hand-in (Core is tested; Runtime, Editor and scene wiring are not reviewed).
 8. Course items:
-   - DRIS section 5 needs real tool versions (see CLAUDE.md Versions) and 2 to 3 screenshots (none exist; `-nographics` cannot render, `Docs/screenshots/` is empty).
+   - DRIS section 5 needs real tool versions (see CLAUDE.md Versions) and 2 to 3 screenshots. Six greybox stills exist in `Docs/screenshots/` (01 player view, 06 observers in are the best). Replace with in-headset captures once played.
    - DRIS 4b must state what the group actually used: Claude for design, code and docs; placeholder generated audio (or the recorded voice, once done).
    - 23 Oct slides: slide 6 prototype status is an [EDIT] placeholder, fill it from this file.
    - Deadline is not in the Moodle docs we have. Check Moodle.
@@ -120,6 +122,7 @@ U="C:\Program Files\Unity\Hub\Editor\6000.6.0f1\Editor\Unity.exe"
 "$U" -batchmode -nographics -projectPath "<root>" -executeMethod PerfectParticipant.Editor.BuildLabScene.BuildFromCommandLine -quit -logFile "<tmp>\build.log"
 "$U" -batchmode -nographics -projectPath "<root>" -executeMethod PerfectParticipant.Editor.ValidateScene.ValidateFromCommandLine -quit -logFile "<tmp>\validate.log"
 ```
+Stills (needs graphics, so NO `-nographics`): `"$U" -batchmode -projectPath "<root>" -executeMethod PerfectParticipant.Editor.CaptureScreenshots.CaptureFromCommandLine -quit -logFile "<tmp>\capture.log"` writes `Docs/screenshots/*.png`.
 Do not add `-quit` with `-runTests`. Passing: exit code 0, `results.xml` shows `total="92" passed="92" failed="0"` (more as tests are added), no `error CS` in logs, `[ValidateScene]` OK. Grep logs for `[BuildLab]` warnings.
 
 ## Session log
@@ -129,3 +132,4 @@ Do not add `-quit` with `-runTests`. Passing: exit code 0, `results.xml` shows `
 - 2026-10-20: Part 1 fixes: doorway + ExitBooth, kinematic door, poke axis verified, SeatedMode MVP, DeskPlaythroughTests. Compile clean, 92/92, scene rebuilt, Validate OK. Nothing seen visually.
 - 2026-10-20: Git: LFS configured, 4 local commits (2fcc5c9, 3ac6180, f0c48f6, 91d4774) on top of 51f7beb and 25b3752.
 - 2026-10-20: Final hand-off rewrite of HANDOFF.md (c9fee1c), open items in Next steps. Pushed origin/main, remote head = c9fee1c, 159 LFS files.
+- 2026-10-20: Known-flaw pass: S key, composure slider via `ExperimentFlow.SetComposure`, Restart = scene reload, Flagged tether, E3 stillness rule in Core (+3 tests, 95/95). `CaptureScreenshots` editor tool; first look at the scene showed it near black and sky reflected in the glass, fixed in `BuildLabScene` (lighting, glass, booth backdrop), scene rebuilt, Validate OK.

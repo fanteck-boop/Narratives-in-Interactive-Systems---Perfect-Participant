@@ -15,6 +15,7 @@ namespace PerfectParticipant
         public Transform Hand { get; private set; }
         Transform cam, oldParent;
         GrabTracker held;
+        ExperimentRunner runner;
         bool wasKinematic;
         float pitch;
         static readonly Vector3 Ahead = new Vector3(0.25f, -0.25f, 0.5f), Behind = new Vector3(0.2f, -0.1f, -0.4f);
@@ -31,6 +32,7 @@ namespace PerfectParticipant
             Hand.SetParent(cam, false);
             Hand.localPosition = Ahead;
             Cursor.lockState = CursorLockMode.Locked;
+            runner = FindFirstObjectByType<ExperimentRunner>();
         }
 
         void Update()
@@ -48,6 +50,7 @@ namespace PerfectParticipant
                 cam.localEulerAngles = new Vector3(pitch, 0f, 0f);
             }
 
+            if (runner && !runner.enabled) return; // content note showing: S toggles seated mode, no walking
             var dir = new Vector3((k.dKey.isPressed ? 1 : 0) - (k.aKey.isPressed ? 1 : 0), 0f, (k.wKey.isPressed ? 1 : 0) - (k.sKey.isPressed ? 1 : 0));
             Vector3 p = transform.position + transform.TransformDirection(dir.normalized) * (speed * Time.deltaTime);
             transform.position = new Vector3(Mathf.Clamp(p.x, -Room, Room), p.y, Mathf.Clamp(p.z, -Room, Room));
