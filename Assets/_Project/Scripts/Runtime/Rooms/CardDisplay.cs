@@ -3,6 +3,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
+using UnityEngine.UI;
 
 namespace PerfectParticipant
 {
@@ -19,9 +20,8 @@ namespace PerfectParticipant
             "You may remove the headset at any time.\n\nPress the trigger to begin.\nSeated? Press A or X (S on keyboard).";
         [SerializeField] float endHold = 12f, fadeSeconds = 3f;
 
-        TextMeshPro blackText;
-        MeshRenderer fadeR;
-        Material fadeMat;
+        TMP_Text blackText;
+        Image fade;
         float alpha, target, endAt;
         bool waiting, ended, blackCard;
         string pendingBlack;
@@ -100,24 +100,18 @@ namespace PerfectParticipant
             }
         }
 
-        // Head-locked black quad 0.9 m ahead, text 0.8 m ahead.
-        // ponytail: geometry closer than 0.9 m to the head draws over the fade; fine for an ending.
+        // Full-screen UI (RoomUtil.ScreenLayer). Headset: fade just past the near plane covers everything, text at 1 m on top.
         void Rig()
         {
             var cam = Camera.main;
-            if (!cam || fadeR) return;
-            var q = GameObject.CreatePrimitive(PrimitiveType.Quad);
-            q.name = "FadeQuad";
-            Destroy(q.GetComponent<Collider>());
-            q.transform.SetParent(cam.transform, false);
-            q.transform.localPosition = new Vector3(0f, 0f, 0.9f);
-            q.transform.localScale = Vector3.one * 5f;
-            fadeR = q.GetComponent<MeshRenderer>();
-            fadeR.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            fadeR.receiveShadows = false;
-            fadeMat = new Material(Shader.Find("Sprites/Default")); // ponytail: always-included shader with alpha, avoids URP transparent setup
-            fadeR.sharedMaterial = fadeMat;
-            blackText = RoomUtil.Text("BlackText", cam.transform, new Vector3(0f, 0f, 0.8f), Quaternion.identity, 0.05f, 0.9f);
+            if (!cam || fade) return;
+            var f = RoomUtil.ScreenLayer("FadeCanvas", cam, 0.1f, 100);
+            RoomUtil.Fill(f, 0f, 0f, 1f, 1f);
+            fade = f.gameObject.AddComponent<Image>();
+            fade.raycastTarget = false;
+            var t = RoomUtil.ScreenLayer("BlackTextCanvas", cam, 1f, 101);
+            RoomUtil.Fill(t, 0.15f, 0.15f, 0.85f, 0.85f);
+            blackText = RoomUtil.ScreenText(t, 40f);
             blackText.text = "";
         }
 
@@ -133,13 +127,13 @@ namespace PerfectParticipant
         void Update()
         {
             Rig();
-            if (!fadeR) return;
+            if (!fade) return;
             if (waiting) SeatPressed();
             if (waiting && StartPressed()) StartExperiment();
 
             alpha = Mathf.MoveTowards(alpha, target, Time.deltaTime / Mathf.Max(0.1f, fadeSeconds));
-            fadeMat.color = new Color(0f, 0f, 0f, alpha);
-            fadeR.enabled = alpha > 0.001f;
+            fade.color = new Color(0f, 0f, 0f, alpha);
+            fade.enabled = alpha > 0.001f;
             if (pendingBlack != null && alpha >= 0.99f) { blackText.text = pendingBlack; pendingBlack = null; }
 
             if (runner && !ended && !waiting && runner.Flow.Finished) { ended = true; endAt = Time.time + endHold; }

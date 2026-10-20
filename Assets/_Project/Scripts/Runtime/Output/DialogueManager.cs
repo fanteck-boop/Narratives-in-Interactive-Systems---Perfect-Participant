@@ -115,7 +115,10 @@ namespace PerfectParticipant
             {
                 var cam = Camera.main;
                 if (!cam) return;
-                var t = RoomUtil.Text("SubtitleStrip", cam.transform, new Vector3(0f, -0.22f, 1.2f), Quaternion.identity, 0.05f, 1.1f);
+                // bottom strip, screen UI; above the fade so lines stay readable on black
+                var r = RoomUtil.ScreenLayer("SubtitleCanvas", cam, 1.2f, 102);
+                RoomUtil.Fill(r, 0.1f, 0.12f, 0.9f, 0.3f); // not lower: the headset's lower field is blurry
+                var t = RoomUtil.ScreenText(r, 34f);
                 t.outlineWidth = 0.25f;
                 t.outlineColor = Color.black;
                 subtitle = t;
