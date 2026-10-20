@@ -1,0 +1,209 @@
+using System;
+using System.Collections.Generic;
+
+namespace PerfectParticipant.Core
+{
+    // Sole owner of state transitions. Feed one FrameInput per frame, apply returned commands in order.
+    // Returned list is reused: consume before next call.
+    public sealed class ExperimentFlow
+    {
+        public const float IntroDelay = 3f, AfterReaction = 2f, SlippedAt = 60;
+
+        public readonly BehaviourModel Model = new BehaviourModel();
+        public GameState State { get; private set; }
+        public float StateTime { get; private set; }
+        public EndingId Ending { get; private set; }
+        public bool Finished { get; private set; } // final card shown
+
+        readonly List<Command> _out = new List<Command>();
+        readonly Queue<(float delay, Action run)> _steps = new Queue<(float, Action)>();
+        float _wait;
+        bool _started, _listening;
+        int _t3StartComposure, _lastComposure = 100;
+        Tier _lastTier = Tier.Neutral;
+        IntakeClassifier _intake; Test1Classifier _t1; Test2Classifier _t2; Test3Classifier _t3;
+
+        public List<Command> Tick(float dt, in FrameInput i)
+        {
+            _out.Clear();
+            if (!_started) { _started = true; Enter(GameState.Intake); return _out; }
+            StateTime += dt;
+            if (i.ReadingForm) Model.Flags |= Flag.ReadForm;
+            if (i.DoorGrabbed) Model.Flags |= Flag.TriedDoor;
+
+            if (State == GameState.Refusal && i.ButtonPressed && Ending == EndingId.None) { LateConsent(); return _out; }
+
+            // queued beats block classification; one step per tick so NarratorBusy reflects the last PlayLine
+            if (_steps.Count > 0)
+            {
+                if (!i.NarratorBusy && (_wait += dt) >= _steps.Peek().delay) { _wait = 0f; _steps.Dequeue().run(); }
+                return _out;
+            }
+            if (!_listening) return _out;
+
+            Verdict v; TestId test;
+            switch (State)
+            {
+                case GameState.Intake: v = _intake.Tick(dt, i); test = TestId.Intake; break;
+                case GameState.Test1: v = _t1.Tick(dt, i); test = TestId.Test1; break;
+                case GameState.Test2: v = _t2.Tick(dt, i); test = TestId.Test2; break;
+                case GameState.Test3: v = _t3.Tick(dt, i); test = TestId.Test3; break;
+                default: return _out;
+            }
+            if (v.Deviation != Subtype.None)
+            {
+                if (v.Deviation == Subtype.Throw) Model.Flags |= Flag.ThrewCube;
+                Play(Lines.Reaction(TestId.Test3, ResponseKind.Deviate, v.Deviation));
+            }
+            if (v.Nudge != null) Play(v.Nudge);
+            if (v.ComposureDelta != 0) { Model.AddComposure(v.ComposureDelta); Sync(); }
+            if (v.Kind != ResponseKind.None) Resolve(test, v.Kind, v.Subtype);
+            return _out;
+        }
+
+        // Debug: resolve the running test as if classified.
+        public List<Command> Force(ResponseKind k, Subtype s = Subtype.None)
+        {
+            _out.Clear();
+            var test = State == GameState.Intake ? TestId.Intake : State == GameState.Test1 ? TestId.Test1
+                : State == GameState.Test2 ? TestId.Test2 : TestId.Test3;
+            if (_listening && State <= GameState.Test3) { _steps.Clear(); Resolve(test, k, s); }
+            return _out;
+        }
+
+        // Debug: jump to a state. Model is kept as is.
+        public List<Command> JumpTo(GameState s)
+        {
+            _out.Clear(); _started = true;
+            if (s == GameState.Refusal) _t3StartComposure = Model.Composure;
+            Enter(s);
+            return _out;
+        }
+
+        void Resolve(TestId test, ResponseKind k, Subtype s)
+        {
+            _listening = false;
+            if (test == TestId.Intake)
+            {
+                Model.PrologueResponse = k;
+                Play(Lines.Reaction(test, k, s));
+                _out.Add(Command.Class(test, k, s));
+                Then(AfterReaction, () => Enter(GameState.Test1));
+                return;
+            }
+            if (test == TestId.Test3)
+            {
+                bool late = k == ResponseKind.Comply && Model.I >= 2;
+                Model.Apply(k);
+                _out.Add(Command.Class(test, k, s));
+                Sync();
+                if (k == ResponseKind.Inaction) { Enter(GameState.Refusal); return; }
+                if (late) Model.Flags |= Flag.LateConsent;
+                Play(late ? "T3-Cl" : "T3-C");
+                Ending = Model.PickEnding(k, false);
+                Then(AfterReaction, () => Enter(Ending == EndingId.E1 ? GameState.EndE1 : GameState.EndE2));
+                return;
+            }
+
+            Model.Apply(k);
+            if (s == Subtype.Throw) Model.Flags |= Flag.ThrewCube;
+            if (s == Subtype.Hide) Model.Flags |= Flag.HidCube;
+            if (s == Subtype.TurnedAway) Model.Flags |= Flag.TurnedAway;
+            Play(Lines.Reaction(test, k, s));
+            _out.Add(Command.Class(test, k, s));
+            Sync();
+            if (test == TestId.Test1) { Then(AfterReaction, () => Enter(GameState.Test2)); return; }
+
+            _out.Add(Command.Room(k == ResponseKind.Comply ? RoomEvents.ObserversNod
+                : k == ResponseKind.Deviate ? RoomEvents.ObserversWriteFast : RoomEvents.ObserversLeanIn));
+            Then(AfterReaction, () => Play(Lines.ForTier("BR", Model.Tier))); // interlude
+            Then(AfterReaction, () => Enter(GameState.Test3));
+        }
+
+        void Enter(GameState s)
+        {
+            State = s; StateTime = 0f; _steps.Clear(); _wait = 0f; _listening = false;
+            _out.Add(Command.To(s));
+            switch (s)
+            {
+                case GameState.Intake:
+                    _intake = new IntakeClassifier();
+                    Then(IntroDelay, () => Play("P-01"));
+                    Then(0f, () => { Play("P-02"); _listening = true; });
+                    break;
+                case GameState.Test1:
+                    _t1 = new Test1Classifier(); _listening = true;
+                    Play("T1-01");
+                    if (Model.PrologueResponse == ResponseKind.Deviate) Play("T1-01b");
+                    break;
+                case GameState.Test2:
+                    _t2 = new Test2Classifier(); _listening = true;
+                    _out.Add(Command.Room(RoomEvents.ObserversIn));
+                    Play(Lines.ForTier("T2-01", Model.Tier));
+                    break;
+                case GameState.Test3:
+                    _t3 = new Test3Classifier(); _listening = true;
+                    _t3StartComposure = Model.Composure;
+                    Play(Lines.ForTier("T3-01", Model.Tier));
+                    break;
+                case GameState.Refusal:
+                    if (_t3StartComposure > 50) foreach (var st in Refusal.Stall) Beat(st);
+                    for (int n = 0; n < Refusal.Steps.Length - 1; n++) Beat(Refusal.Steps[n]);
+                    Then(Refusal.Steps[Refusal.Steps.Length - 1].Delay, () => Enter(GameState.EndE3));
+                    break;
+                case GameState.EndE1:
+                    Ending = EndingId.E1;
+                    Then(1f, () => Play("E1-01"));
+                    Then(1f, () => Play("E1-02"));
+                    Then(1f, () => Play("E1-03"));
+                    Then(1f, () => Card(Cards.AsExpected, null));
+                    break;
+                case GameState.EndE2:
+                    Ending = EndingId.E2;
+                    Then(1f, () => Play("E2-01"));
+                    Then(1f, () => Play("E2-02"));
+                    if (Model.D == 3) Then(1f, () => Play("E2-03a"));
+                    if (Model.Has(Flag.LateConsent)) Then(1f, () => Play("E2-03b"));
+                    Then(1f, () => Play("E2-03"));
+                    Then(1f, () => Card(Cards.AsExpected, null));
+                    break;
+                case GameState.EndE3:
+                    Ending = EndingId.E3;
+                    Do(Refusal.Steps[Refusal.Steps.Length - 1]);
+                    Then(Refusal.CardAfterDoor, () => Card(Cards.None, Cards.NoneSub));
+                    break;
+            }
+        }
+
+        void LateConsent()
+        {
+            _steps.Clear(); _wait = 0f;
+            _out.Add(Command.Stop());
+            Model.SetComposure(100);
+            Model.Flags |= Flag.LateConsent;
+            Sync();
+            Play("R-C");
+            Ending = Model.PickEnding(ResponseKind.Inaction, true);
+            Then(AfterReaction, () => Enter(GameState.EndE2));
+        }
+
+        void Then(float delay, Action run) => _steps.Enqueue((delay, run));
+        void Beat(RefusalStep st) => Then(st.Delay, () => Do(st));
+
+        void Do(RefusalStep st)
+        {
+            foreach (var e in st.Events) _out.Add(Command.Room(e));
+            if (st.Line != null) Play(st.Line);
+        }
+
+        void Play(string id) => _out.Add(Command.Line(id, Model.Composure <= SlippedAt));
+
+        void Card(string title, string sub) { _out.Add(Command.Card(title, sub)); Finished = true; }
+
+        void Sync()
+        {
+            if (Model.Composure != _lastComposure) { _lastComposure = Model.Composure; _out.Add(Command.Composure(_lastComposure)); }
+            if (Model.Tier != _lastTier) { _lastTier = Model.Tier; _out.Add(Command.TierCmd(_lastTier)); }
+        }
+    }
+}

@@ -1,0 +1,175 @@
+using System;
+using PerfectParticipant.Core;
+using UnityEngine;
+
+namespace PerfectParticipant
+{
+    // Fills FrameInput once per frame. Edges latch from events, cleared in Sample().
+    // Finds scene objects by name (see HANDOFF). Missing object = that field stays at idle value.
+    public class InputSampler : MonoBehaviour
+    {
+        public event Action<PlayerEvent> PlayerEventRaised; // for SessionLogger
+
+        [SerializeField] Transform head, leftHand, rightHand; // auto: Main Camera, Left/Right Controller, DesktopRig hand
+        [SerializeField] float respawnAfter = 5f;
+
+        const float FormDist = 0.5f, SeatedFormDist = 1f, FormCone = 45f, HideDot = -0.3f, IdleDist = 0.1f, TouchPad = 0.1f;
+
+        bool ready;
+        Transform window, ceilingCam, form;
+        Zone mark, tray, table, button;
+        Collider[] consoleCols;
+        bool bPress, bConsole, bDoor, bOther, bRel;
+        float relSpeed, offTime;
+        bool pInTray, pWin, pCam, pAway, pMark;
+        readonly Vector3[] rest = new Vector3[2];
+        readonly bool[] hasRest = new bool[2];
+
+        void OnEnable()
+        {
+            GrabTracker.Grabbed += OnGrab; GrabTracker.Released += OnRelease; ButtonPress.Pressed += OnPress;
+        }
+
+        void OnDisable()
+        {
+            GrabTracker.Grabbed -= OnGrab; GrabTracker.Released -= OnRelease; ButtonPress.Pressed -= OnPress;
+        }
+
+        void Raise(PlayerEventType t, string payload = null) => PlayerEventRaised?.Invoke(new PlayerEvent(Time.time, t, payload));
+
+        void OnPress() { bPress = true; Raise(PlayerEventType.ButtonPressed); }
+
+        void OnGrab(GrabTracker g)
+        {
+            switch (g.kind)
+            {
+                case GrabKind.Cube: Raise(PlayerEventType.CubeGrabbed); break;
+                case GrabKind.Console: bConsole = true; Raise(PlayerEventType.ConsoleMoved, g.name); break;
+                case GrabKind.Door: bDoor = true; Raise(PlayerEventType.DoorGrabbed, g.name); break;
+                default: bOther = true; Raise(PlayerEventType.ObjectMoved, g.name); break;
+            }
+        }
+
+        void OnRelease(GrabTracker g, float speed)
+        {
+            if (g.kind != GrabKind.Cube) return;
+            bRel = true; relSpeed = speed;
+            Raise(PlayerEventType.CubeReleased, speed.ToString("F1"));
+            if (speed > Test1Classifier.ThrowSpeed) Raise(PlayerEventType.CubeThrown, speed.ToString("F1"));
+        }
+
+        Zone Z(string n)
+        {
+            var g = GameObject.Find(n);
+            if (!g) { Debug.LogWarning("InputSampler: missing " + n); return null; }
+            if (!g.TryGetComponent(out Zone z)) z = g.AddComponent<Zone>(); // Start() seeds overlaps
+            z.Entered += (zone, c) => ZoneEvent(PlayerEventType.ZoneEntered, zone, c);
+            z.Exited += (zone, c) => ZoneEvent(PlayerEventType.ZoneExited, zone, c);
+            return z;
+        }
+
+        // log grabbables only, hands and controllers would spam
+        void ZoneEvent(PlayerEventType t, Zone z, Collider c)
+        {
+            var g = c.GetComponentInParent<GrabTracker>();
+            if (g) Raise(t, z.name + ":" + g.name);
+        }
+
+        static Transform T(string n) { var g = GameObject.Find(n); return g ? g.transform : null; }
+
+        void Resolve()
+        {
+            if (!head && Camera.main != null) head = Camera.main.transform;
+            if (ready) return;
+            ready = true;
+            window = T("ObservationWindow"); ceilingCam = T("CeilingCamera"); form = T("ConsentForm");
+            mark = Z("MarkZone"); tray = Z("TrayZone"); table = Z("TableZone"); button = Z("ButtonZone"); Z("DoorZone");
+            if (!leftHand) leftHand = T("Left Controller");
+            if (!rightHand) rightHand = T("Right Controller");
+            var desk = FindFirstObjectByType<DesktopRig>();
+            if (desk && desk.isActiveAndEnabled) rightHand = desk.Hand;
+        }
+
+        static float Gaze(Transform h, Transform target) => target ? Vector3.Angle(h.forward, target.position - h.position) : 180f;
+
+        // ponytail: rest pose = first-frame pose in head space, drifts if user sits down. Logged only.
+        bool Idle(int i, Transform h)
+        {
+            if (!h) return true;
+            Vector3 l = head.InverseTransformPoint(h.position);
+            if (!hasRest[i]) { hasRest[i] = true; rest[i] = l; }
+            return (l - rest[i]).sqrMagnitude < IdleDist * IdleDist;
+        }
+
+        bool Touching(Transform h)
+        {
+            if (!h) return false;
+            if (table && table.HasPoint(h.position)) return true;
+            if (consoleCols == null && GrabTracker.ConsolePanel) consoleCols = GrabTracker.ConsolePanel.GetComponentsInChildren<Collider>();
+            if (consoleCols != null)
+                foreach (var c in consoleCols)
+                {
+                    if (!c || c.isTrigger) continue;
+                    Bounds b = c.bounds; b.Expand(TouchPad);
+                    if (b.Contains(h.position)) return true;
+                }
+            return false;
+        }
+
+        public FrameInput Sample()
+        {
+            Resolve();
+            var f = new FrameInput { DistFromMark = 1.2f, GazeAngleToWindow = 90f, GazeAngleToCamera = 90f, FacingAwayAngle = 60f };
+            float dt = Time.deltaTime;
+
+            if (head)
+            {
+                Vector3 p = head.position, fw = head.forward;
+                f.HeadX = p.x; f.HeadZ = p.z; f.HeadYaw = head.eulerAngles.y;
+                Vector3 mp = mark ? mark.transform.position : Vector3.zero; // mark moves in seated mode
+                f.DistFromMark = new Vector2(p.x - mp.x, p.z - mp.z).magnitude;
+                f.GazeAngleToWindow = Gaze(head, window);
+                f.GazeAngleToCamera = Gaze(head, ceilingCam);
+                if (window)
+                    f.FacingAwayAngle = Vector3.Angle(Vector3.ProjectOnPlane(fw, Vector3.up), Vector3.ProjectOnPlane(window.position - p, Vector3.up));
+                f.HandsIdle = Idle(0, leftHand) & Idle(1, rightHand);
+                f.ReadingForm = form && Vector3.Distance(p, form.position) < (SeatedMode.Seated ? SeatedFormDist : FormDist) && Gaze(head, form) < FormCone;
+
+                // log-only edges
+                bool win = f.GazeAngleToWindow < Test2Classifier.WindowCone, cm = f.GazeAngleToCamera < Test2Classifier.CameraCone;
+                bool away = f.FacingAwayAngle > Test2Classifier.AwayAngle;
+                bool onMark = mark && mark.HasPoint(new Vector3(p.x, mark.transform.position.y, p.z));
+                if (win && !pWin) Raise(PlayerEventType.GazeOnWindow);
+                if (cm && !pCam) Raise(PlayerEventType.GazeOnCamera);
+                if (away && !pAway) Raise(PlayerEventType.FacingAway);
+                if (onMark != pMark) Raise(onMark ? PlayerEventType.ZoneEntered : PlayerEventType.ZoneExited, "MarkZone:Head");
+                pWin = win; pCam = cm; pAway = away; pMark = onMark;
+            }
+
+            GrabTracker c = GrabTracker.Cube;
+            if (c)
+            {
+                bool inTray = tray && tray.Has(c.transform);
+                f.CubeHeld = c.Held && !bRel;
+                f.CubeInTray = inTray && !c.Held;
+                f.CubeOnButton = button && button.Has(c.transform);
+                f.CubeOffTable = !c.Held && !inTray && !(table && table.Has(c.transform));
+                f.CubeHandBehindHead = c.Held && head && Vector3.Dot((c.Holder.position - head.position).normalized, head.forward) < HideDot;
+                if (f.CubeInTray && !pInTray) Raise(PlayerEventType.CubeInTray);
+                pInTray = f.CubeInTray;
+
+                // ponytail: no tether when Flagged (needs Tier from runner), respawn only
+                offTime = f.CubeOffTable && !f.CubeOnButton ? offTime + dt : 0f;
+                if (offTime > respawnAfter) { c.Respawn(); offTime = 0f; Raise(PlayerEventType.CubeRespawned); }
+            }
+
+            f.CubeReleased = bRel; f.CubeReleaseSpeed = relSpeed;
+            f.ButtonPressed = bPress; f.ConsoleMoved = bConsole; f.DoorGrabbed = bDoor; f.OtherObjectMoved = bOther;
+            f.ButtonCovered = button && button.HasKind(GrabKind.Other);
+            f.TouchedTableOrConsole = Touching(leftHand) || Touching(rightHand);
+
+            bPress = bConsole = bDoor = bOther = bRel = false; relSpeed = 0f;
+            return f;
+        }
+    }
+}
