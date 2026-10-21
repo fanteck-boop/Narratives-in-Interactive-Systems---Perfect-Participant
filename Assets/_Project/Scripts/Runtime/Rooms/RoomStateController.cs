@@ -62,7 +62,7 @@ namespace PerfectParticipant
         // corridor room doors: Leaf_n pivots at the hinge, swing into the room
         class CDoor { public Transform leaf; public float angle, target; }
         readonly Dictionary<int, CDoor> cdoors = new Dictionary<int, CDoor>();
-        const float CDoorOpen = 90f, CDoorSpeed = 120f; // deg, deg/s
+        const float CDoorOpen = 90f, CDoorOpenSpeed = 120f, CDoorCloseSpeed = 45f; // deg, deg/s; slow shut (playtest: felt like a trap)
 
         // misc props
         Transform clipboard, cube, form, window, grille, camT;
@@ -186,6 +186,7 @@ namespace PerfectParticipant
                     if ((c.Id == RoomEvents.DoorOpen || c.Id == RoomEvents.DoorClose) && cdoors.TryGetValue(c.Value, out var cd))
                     {
                         cd.target = c.Id == RoomEvents.DoorOpen ? CDoorOpen : 0f;
+                        if (c.Id == RoomEvents.DoorOpen) SetLed("LED_Reader" + c.Value, Green); // keycard reader (3, 6) only; others have none
                         Beep(PlaceholderAudio.Thump(c.Id == RoomEvents.DoorOpen ? 80f : 55f, 0.5f), cd.leaf.position, 1f); // shut = deeper
                     }
                     else Evt(c.Id);
@@ -298,6 +299,7 @@ namespace PerfectParticipant
             if (voiceHomeSet && dialogue) dialogue.Voice.localPosition = voiceLocal;
             foreach (var l in leds.Values) l.tgt = Color.black;
             SetLed("LED_Door", Red);
+            SetLed("LED_Reader3", Red); SetLed("LED_Reader6", Red);
             recording = true;
         }
 
@@ -415,7 +417,7 @@ namespace PerfectParticipant
             foreach (var cd in cdoors.Values)
                 if (cd.angle != cd.target)
                 {
-                    cd.angle = Mathf.MoveTowards(cd.angle, cd.target, CDoorSpeed * dt);
+                    cd.angle = Mathf.MoveTowards(cd.angle, cd.target, (cd.target > cd.angle ? CDoorOpenSpeed : CDoorCloseSpeed) * dt);
                     cd.leaf.localRotation = Quaternion.Euler(0f, cd.angle, 0f);
                 }
 

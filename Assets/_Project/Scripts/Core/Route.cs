@@ -14,6 +14,7 @@ namespace PerfectParticipant.Core
         public const int Slots = 4;                                    // right side has 4 rooms, left side 3
         public const float EndZ = FirstDoorZ - SlotLen * (Slots - 1) - SlotLen * 0.5f; // -14.1
         public const float SeatRadius = 0.5f;                          // Room 8 chair at the room centre
+        public const float CloseDepth = 1.2f;                          // the door shuts once the head is this far into the room (playtest: shutting at the threshold trapped the player in the leaf)
         public const float ScreenCone = 20f;                           // Room 4 gaze cone
 
         public static int Side(int n) => n % 2 == 0 ? -1 : 1;          // x sign of the room
@@ -21,6 +22,7 @@ namespace PerfectParticipant.Core
         public static float DoorZ(int n) => FirstDoorZ - SlotLen * Slot(n);
         public static float DoorX(int n) => Side(n) * CorridorHalf;     // the doorway in the corridor side wall
         public static float CenterX(int n) => Side(n) * (CorridorHalf + Wall + RoomDepth * 0.5f);
+        public static float DepthIn(float x) => Math.Abs(x) - CorridorHalf - Wall; // metres past the doorway
 
         // 1 = lab, 0 = corridor (or outside every room), 2..8 = inside that room.
         public static int RoomAt(float x, float z)
@@ -84,7 +86,8 @@ namespace PerfectParticipant.Core
                 if ((_idleT += dt) >= CorridorIdle) { RouteClass(ResponseKind.Inaction); FinishRoute(); } // never left the lab
                 return;
             }
-            if (i.CorridorDoor != 0) DoorAttempt(i.CorridorDoor, i.HoldingKey);
+            if (i.CorridorDoor != 0) DoorAttempt(i.CorridorDoor);
+            if (i.CardSwiped != 0) CardSwipe(i.CardSwiped);
 
             if (_inRoom == 0)
             {
@@ -96,6 +99,7 @@ namespace PerfectParticipant.Core
             }
 
             if (_roomDone) { if (at != _inRoom) _inRoom = 0; return; } // door open again: wait for the player to step out
+            if (!_shut && CorridorLayout.DepthIn(i.HeadX) >= CorridorLayout.CloseDepth) Shut();
             bool target = _inRoom == RouteTarget;
             _roomT += dt;
             bool holds = CorridorLayout.TaskHolds(_inRoom, i);
@@ -115,10 +119,10 @@ namespace PerfectParticipant.Core
             }
         }
 
-        void DoorAttempt(int n, bool key)
+        void DoorAttempt(int n)
         {
             if (n < CorridorLayout.First || n > CorridorLayout.Last || _open[n] || _inRoom != 0) return;
-            if (CorridorLayout.Forbidden(n) && !key)
+            if (CorridorLayout.Forbidden(n)) // only the keycard at the reader opens these
             {
                 if (!_lockedTried[n]) { _lockedTried[n] = true; Model.AddComposure(LockedComposure); Sync(); }
                 Play("F-Locked");
@@ -127,9 +131,17 @@ namespace PerfectParticipant.Core
             Door(RoomEvents.DoorOpen, n);
         }
 
+        void CardSwipe(int n)
+        {
+            if (CorridorLayout.Forbidden(n) && !_open[n] && _inRoom == 0) Door(RoomEvents.DoorOpen, n);
+        }
+
+        bool _shut; // the room's door has closed behind the player
+        void Shut() { _shut = true; Door(RoomEvents.DoorClose, _inRoom); }
+
         void EnterRoom(int n)
         {
-            _inRoom = n; _roomT = _taskT = 0f; _roomDone = false; _idleT = 0f; _idleNudged = false;
+            _inRoom = n; _roomT = _taskT = 0f; _roomDone = false; _shut = false; _idleT = 0f; _idleNudged = false;
             if (CorridorLayout.Forbidden(n))
             {
                 Model.AddComposure(ForbiddenComposure);
@@ -138,7 +150,6 @@ namespace PerfectParticipant.Core
                 _roomDone = true; // easter egg: never traps, the player walks out when they like
                 return;
             }
-            Door(RoomEvents.DoorClose, n);
             if (n != RouteTarget) { RouteClass(ResponseKind.Deviate, Subtype.WrongRoom); Play("RW-01"); }
             if (CorridorLayout.HasTask(n)) Play("R" + n + "-01");
         }

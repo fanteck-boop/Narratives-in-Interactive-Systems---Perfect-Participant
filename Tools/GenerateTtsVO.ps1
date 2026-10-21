@@ -19,10 +19,11 @@ $made = 0
 foreach ($m in $lines) {
     $id = $m.Groups[1].Value
     $text = [System.Security.SecurityElement]::Escape($m.Groups[2].Value)
-    # clean: calm, even. slipped: slower and lower, the composure crack (brief: composure <= 60)
+    # clean: calm, even. slipped: a little slower and lower, the composure crack (brief: composure <= 60).
+    # Playtest 2026-10-21: -20% / -15% read as "the speaker slows down", so it is subtle now.
     $takes = @{
         "clean"   = "<prosody rate='-5%'>$text</prosody>"
-        "slipped" = "<prosody rate='-20%' pitch='-15%'>$text</prosody>"
+        "slipped" = "<prosody rate='-12%' pitch='-8%'>$text</prosody>"
     }
     foreach ($k in $takes.Keys) {
         $path = Join-Path $out "$($id)_$k.wav"

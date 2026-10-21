@@ -24,7 +24,10 @@ namespace PerfectParticipant
         int corridorDoor, roomButton;
         Transform screen4, box2;
         Zone shelf2;
-        GrabTracker key;
+        GrabTracker key; // the keycard
+        readonly Transform[] readers = new Transform[CorridorLayout.Last + 1];
+        readonly bool[] atReader = new bool[CorridorLayout.Last + 1];
+        const float SwipeDist = 0.2f;
         bool pInTray, pWin, pCam, pAway, pMark;
         readonly Vector3[] rest = new Vector3[2];
         readonly bool[] hasRest = new bool[2];
@@ -94,6 +97,7 @@ namespace PerfectParticipant
             mark = Z("MarkZone"); tray = Z("TrayZone"); table = Z("TableZone"); button = Z("ButtonZone"); Z("DoorZone");
             shelf2 = Z("ShelfZone"); box2 = T("Box"); screen4 = T("Room4Screen"); // corridor rooms (Test4)
             foreach (var g in GrabTracker.All) if (g.kind == GrabKind.Key) key = g;
+            for (int n = CorridorLayout.First; n <= CorridorLayout.Last; n++) if (CorridorLayout.Forbidden(n)) readers[n] = T("CardReader_" + n);
             if (!leftHand) leftHand = T("Left Controller");
             if (!rightHand) rightHand = T("Right Controller");
             var desk = FindFirstObjectByType<DesktopRig>();
@@ -179,7 +183,13 @@ namespace PerfectParticipant
             f.TouchedTableOrConsole = Touching(leftHand) || Touching(rightHand);
 
             f.CorridorDoor = corridorDoor; f.ClipboardThrown = bClipThrow; f.RoomButton = roomButton;
-            f.HoldingKey = key && key.Held;
+            for (int n = 0; n < readers.Length; n++) // swipe = the held card comes within SwipeDist of a reader (edge on arrival)
+            {
+                if (!readers[n]) continue;
+                bool near = key && key.Held && Vector3.Distance(key.transform.position, readers[n].position) < SwipeDist;
+                if (near && !atReader[n]) { f.CardSwiped = n; Raise(PlayerEventType.ObjectMoved, "Keycard swiped " + n); }
+                atReader[n] = near;
+            }
             f.BoxOnShelf = shelf2 && box2 && shelf2.Has(box2) && !(box2.TryGetComponent<GrabTracker>(out var bt) && bt.Held);
             f.GazeAngleToScreen = head ? Gaze(head, screen4) : 180f;
             bPress = bConsole = bDoor = bOther = bRel = bClipThrow = false; relSpeed = 0f; corridorDoor = roomButton = 0;

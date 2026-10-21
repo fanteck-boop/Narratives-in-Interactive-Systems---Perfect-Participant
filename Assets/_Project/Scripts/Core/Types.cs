@@ -53,7 +53,7 @@ namespace PerfectParticipant.Core
         public bool ConsoleMoved;           // edge, console / button panel grabbed
         public bool DoorGrabbed;            // edge, door handle grab attempt
         public int CorridorDoor;            // edge, room number (2..8) of the corridor door grabbed, 0 = none
-        public bool HoldingKey;             // level, the key from under the lab table is held (opens rooms 3 and 6)
+        public int CardSwiped;              // edge, room number (3, 6) of the card reader the keycard from under the lab table was swiped at
         public bool BoxOnShelf;             // level, Room 2 box inside ShelfZone and not held
         public float GazeAngleToScreen;     // deg, head forward vs Room 4 screen centre
         public int RoomButton;              // edge, room number of the room button pressed (5, 7), 0 = none

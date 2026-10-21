@@ -305,9 +305,14 @@ namespace PerfectParticipant.Editor
             foreach (var sx in new[] { -0.3f, 0.3f }) foreach (var sz in new[] { -0.55f, 0.55f })
                 Cb("Leg", t, new Vector3(sx, 0.35f, sz), new Vector3(0.05f, 0.7f, 0.05f), wood, true);
             Zone("TableZone", t, new Vector3(0, 0.81f, 0), new Vector3(0.7f, 0.12f, 1.2f));
-            // easter egg: key taped under the top (underside y 0.70); opens the forbidden Rooms 3 and 6. Crouch (C) to see it.
-            Qd("KeyTape", t, new Vector3(0.05f, 0.699f, 0.35f), new Vector2(0.09f, 0.04f), M("Tape", new Color(0.72f, 0.66f, 0.4f), 0.05f), new Vector3(-90, 0, 0));
-            var key = Cb("Key", null, new Vector3(1.15f, 0.69f, 0.35f), new Vector3(0.07f, 0.008f, 0.025f), M("Metal", G(0.55f), 0.7f), true);
+            // easter egg: staff keycard taped under the top (underside y 0.70); swipe it at the readers of Rooms 3 and 6.
+            // Crouch (C) to see it. The two tape strips belong to the table and stay when the card is taken.
+            var tape = M("Tape", new Color(0.72f, 0.66f, 0.4f), 0.05f);
+            foreach (float tz in new[] { 0.31f, 0.39f })
+                Qd("KeyTape", t, new Vector3(0.05f, 0.6985f, tz), new Vector2(0.11f, 0.018f), tape, new Vector3(-90, 0, 0));
+            var key = Cb("Key", null, new Vector3(1.15f, 0.694f, 0.35f), new Vector3(0.086f, 0.004f, 0.054f), M("Keycard", G(0.92f), 0.4f), true);
+            Qd("Stripe", key.transform, new Vector3(0, -0.6f, 0.25f), new Vector2(1f, 0.2f), M("Dark", G(0.05f), 0.05f), new Vector3(-90, 0, 0)); // mag stripe, underside
+            T("CardText", key.transform, new Vector3(0, 0.6f, 0), new Vector3(90, 0, 0), "STAFF", 0.25f, new Vector2(0.9f, 0.4f), Ink);
             var krb = key.AddComponent<Rigidbody>(); krb.isKinematic = true; krb.mass = 0.05f; // taped: stays until grabbed, then GrabTracker frees it
             krb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
             key.AddComponent<XRGrabInteractable>().movementType = XRBaseInteractable.MovementType.VelocityTracking;
@@ -443,6 +448,11 @@ namespace PerfectParticipant.Editor
             {
                 Qd("NoEntry", d, new Vector3(-0.8f, 1.32f, 0.055f), new Vector2(0.3f, 0.1f), M("Warning", new Color(0.75f, 0.12f, 0.08f), 0.2f), s);
                 T("NoEntryText", d, new Vector3(-0.8f, 1.32f, 0.057f), s, "STAFF ONLY", 0.045f, new Vector2(0.28f, 0.08f), G(0.95f));
+                // keycard reader on the handle side; InputSampler watches CardReader_n, RoomStateController lights LED_Reader<n>
+                var rd = E("CardReader_" + n, d, new Vector3(0.72f, 1.2f, 0.07f)).transform;
+                Cb("Body", rd, Vector3.zero, new Vector3(0.08f, 0.12f, 0.03f), M("Cam", G(0.18f), 0.3f));
+                Cb("Slot", rd, new Vector3(0, -0.02f, 0.016f), new Vector3(0.06f, 0.005f, 0.004f), M("Dark", G(0.05f), 0.05f));
+                Led("LED_Reader" + n, rd, new Vector3(0, 0.04f, 0.016f), new Vector3(0.015f, 0.015f, 0.004f));
             }
             d.gameObject.AddComponent<XRSimpleInteractable>(); // a grab attempt on leaf or handle = try the door; the flow opens it
             var g = d.gameObject.AddComponent<GrabTracker>();
@@ -526,7 +536,7 @@ namespace PerfectParticipant.Editor
             Cb("Pedestal", r, new Vector3(x, 0.5f, z), new Vector3(0.4f, 1f, 0.4f), M("Console", G(0.3f), 0.25f), true);
             var b = E("RoomButton_" + n, r, new Vector3(x, 1.0f, z)).transform;
             P(PrimitiveType.Cylinder, "Cap", b, new Vector3(0, 0.015f, 0), new Vector3(0.16f, 0.015f, 0.16f), M("ConsentOrange", new Color(1f, 0.42f, 0.05f), 0.55f, Color.black), true);
-            T("Label", b, new Vector3(0, 0.032f, 0), new Vector3(90, FaceCorridor(n) + 180f, 0), label, 0.016f, new Vector2(0.15f, 0.05f), Ink);
+            T("Label", b, new Vector3(0, 0.032f, 0), new Vector3(90, FaceCorridor(n), 0), label, 0.016f, new Vector2(0.15f, 0.05f), Ink); // reads upright from the door (playtest: +180 was upside down)
             b.gameObject.AddComponent<XRSimpleInteractable>();
             var g = b.gameObject.AddComponent<GrabTracker>();
             g.kind = GrabKind.RoomButton; g.number = n;

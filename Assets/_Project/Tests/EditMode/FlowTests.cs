@@ -287,6 +287,10 @@ namespace PerfectParticipant.Tests
             var i = At(5, false); i.CorridorDoor = 5;
             log.AddRange(f.Tick(Dt, i));
             Assert.IsTrue(f.IsDoorOpen(5));
+            var door = At(5, false); door.HeadX = CorridorLayout.Side(5) * (CorridorLayout.CorridorHalf + CorridorLayout.Wall + 0.3f);
+            log.AddRange(f.Tick(Dt, door)); // just past the threshold: inside, but the door must not shut on the player yet
+            Assert.AreEqual(5, f.InRoom);
+            Assert.IsFalse(Has(log, RoomEvents.DoorClose, 5), "door shut in the doorway");
             log.AddRange(f.Tick(Dt, At(5, true)));
             Assert.IsTrue(Has(log, RoomEvents.DoorClose, 5));
             CollectionAssert.IsSubsetOf(new[] { "RW-01", "R5-01" }, LineIds(log).ToList());
@@ -309,7 +313,7 @@ namespace PerfectParticipant.Tests
             Assert.AreEqual(2, f.RouteTarget);
         }
 
-        [Test] public void Route_Forbidden_LockedWithoutKey_KeyOpens_NeverTraps()
+        [Test] public void Route_Forbidden_LockedToHandles_CardSwipeOpens_NeverTraps()
         {
             var (f, log) = Corridor();
             var i = At(3, false); i.CorridorDoor = 3;
@@ -318,7 +322,7 @@ namespace PerfectParticipant.Tests
             Assert.IsFalse(f.IsDoorOpen(3));
             CollectionAssert.Contains(LineIds(log).ToList(), "F-Locked");
             Assert.AreEqual(100 + ExperimentFlow.LockedComposure, f.Model.Composure);
-            i.HoldingKey = true;
+            i.CorridorDoor = 0; i.CardSwiped = 3;
             log.AddRange(f.Tick(Dt, i));
             Assert.IsTrue(f.IsDoorOpen(3));
             log.AddRange(f.Tick(Dt, At(3, true)));
