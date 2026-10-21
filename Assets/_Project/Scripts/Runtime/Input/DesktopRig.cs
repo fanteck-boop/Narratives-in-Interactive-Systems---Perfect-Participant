@@ -6,11 +6,15 @@ using UnityEngine.XR;
 namespace PerfectParticipant
 {
     // Desk fallback. Put on XR Origin root. Off when headset or XR simulator present.
-    // WASD move, mouse look, E grab (what the crosshair points at) / release, Space throw, F poke button, Q hand behind head (hide test).
+    // WASD move, mouse look, E grab (what the crosshair points at); while holding, tap E = put down, hold E = charge a throw
+    // (released on E up), Space = full throw, F poke button, Q hand behind head (hide test).
     public class DesktopRig : MonoBehaviour
     {
-        [SerializeField] float speed = 1.5f, look = 0.1f, reach = 1.5f, toss = 6f;
+        [SerializeField] float speed = 1.5f, look = 0.1f, reach = 1.5f;
         const float RayReach = 2.2f; // standing eye 1.6 m: reaches the floor about 1.5 m ahead
+        // Charged throw: 1.5 m/s (a toss, under Test1Classifier.ThrowSpeed 3) up to a moderate 5 m/s cap over 1.2 s.
+        const float TapTime = 0.2f, ChargeTime = 1.2f, MinThrow = 1.5f, MaxThrow = 5f;
+        float chargeStart = -1f;
 
         public Transform Hand { get; private set; }
         Transform cam;
@@ -64,8 +68,14 @@ namespace PerfectParticipant
             Hand.localPosition = k.qKey.isPressed ? Behind : Ahead;
             if (held) Carry();
 
-            if (k.eKey.wasPressedThisFrame) { if (held) Drop(false); else TryGrab(); }
-            if (k.spaceKey.wasPressedThisFrame && held) Drop(true);
+            if (k.eKey.wasPressedThisFrame) { if (held) chargeStart = Time.time; else TryGrab(); }
+            if (held && chargeStart >= 0f && k.eKey.wasReleasedThisFrame)
+            {
+                float h = Time.time - chargeStart;
+                chargeStart = -1f;
+                Drop(h < TapTime ? 0f : ThrowSpeed(h));
+            }
+            if (k.spaceKey.wasPressedThisFrame && held) { chargeStart = -1f; Drop(MaxThrow); }
             if (k.fKey.wasPressedThisFrame)
             {
                 var b = FindFirstObjectByType<ButtonPress>();
@@ -104,12 +114,15 @@ namespace PerfectParticipant
             held.transform.SetPositionAndRotation(to, cam.rotation * heldRot);
         }
 
-        void Drop(bool throwIt)
+        static float ThrowSpeed(float held) => Mathf.Lerp(MinThrow, MaxThrow, (held - TapTime) / ChargeTime);
+
+        // throwSpeed 0 = put down with the hand's own motion
+        void Drop(float throwSpeed)
         {
             GrabTracker t = held; held = null;
             SetLayer(t.transform, heldLayer);
             IgnoreBody(t, false);
-            Vector3 v = throwIt ? cam.forward * toss : t.Velocity;
+            Vector3 v = throwSpeed > 0f ? cam.forward * throwSpeed : t.Velocity;
             if (t.Body) { t.Body.isKinematic = false; t.Body.linearVelocity = v; } // a placed object falls and rests, never floats
             t.Release(v.magnitude);
         }
@@ -130,6 +143,11 @@ namespace PerfectParticipant
             if (Cursor.lockState != CursorLockMode.Locked) return;
             var c = new Rect(Screen.width * 0.5f - 3f, Screen.height * 0.5f - 3f, 6f, 6f);
             GUI.DrawTexture(c, Texture2D.whiteTexture); // crosshair: E grabs what it points at
+            if (held && chargeStart >= 0f && Time.time - chargeStart >= TapTime) // charge bar under the crosshair
+            {
+                float f = Mathf.InverseLerp(MinThrow, MaxThrow, ThrowSpeed(Time.time - chargeStart));
+                GUI.DrawTexture(new Rect(Screen.width * 0.5f - 40f, Screen.height * 0.5f + 14f, 80f * f, 5f), Texture2D.whiteTexture);
+            }
         }
     }
 }
