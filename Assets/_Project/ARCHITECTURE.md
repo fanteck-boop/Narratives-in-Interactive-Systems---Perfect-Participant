@@ -40,7 +40,7 @@ Edge = true on one frame only. Level = true while it holds. Angles in degrees, d
 ## Commands (consumed via `ExperimentRunner.CommandIssued`)
 | Kind | fields | consumer |
 |---|---|---|
-| PlayLine | Id, Slipped | DialogueManager: queue line; slipped take if `Slipped` and clip exists, else clean. Subtitle from `Lines.Text`. Drop a nudge (`*-N*`) if a reaction is queued. `Busy` true from handling until queue empty (no clip: estimate 0.06 s/char) |
+| PlayLine | Id, Slipped | DialogueManager: queue line; slipped take if `Slipped` and clip exists, else clean. Subtitle from `Lines.Text`. Drop a nudge (`*-N*`) if a reaction is queued. Drop a line whose id is already playing or queued. On Transition, clear lines still queued (playing line finishes). `Busy` true from handling until queue empty (no clip: estimate 0.06 s/char) |
 | StopDialogue | | DialogueManager: cut current line, clear queue |
 | SetTier / SetComposure | Tier / Value | RoomStateController (light preset, props, window, hum), logger. Only sent on change |
 | RoomEvent | Id (`RoomEvents.*`) | RoomStateController / audio, one-shot beats |
