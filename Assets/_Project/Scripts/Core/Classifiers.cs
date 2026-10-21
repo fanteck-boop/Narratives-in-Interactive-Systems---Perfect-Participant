@@ -5,6 +5,13 @@ namespace PerfectParticipant.Core
     // Time-stepped classifiers, one per test. t = 0 when the test prompt starts.
     // Priority per tick: Comply, Deviate, Inaction (brief 12.2).
 
+    // Team decision 2026-10-21: the brief's waits felt rushed. Scales every wait before a nudge or an
+    // Inaction verdict (and the late-comply cut-offs). Comply/deviate detection speeds are untouched.
+    public static class Pacing
+    {
+        public const float Wait = 2f;
+    }
+
     static class Nudges
     {
         public static string Next(float t, ref int fired, float[] at, string[] ids)
@@ -31,8 +38,8 @@ namespace PerfectParticipant.Core
 
     public sealed class IntakeClassifier
     {
-        public const float MarkRadius = 0.35f, MarkDwell = 1.5f, ComplyBy = 25f, InactionAt = 40f, WanderDist = 1f;
-        static readonly float[] NudgeAt = { 18f, 32f };
+        public const float MarkRadius = 0.35f, MarkDwell = 1.5f, ComplyBy = 25f * Pacing.Wait, InactionAt = 40f * Pacing.Wait, WanderDist = 1f;
+        public static readonly float[] NudgeAt = { 18f * Pacing.Wait, 32f * Pacing.Wait };
         static readonly string[] NudgeIds = { "P-N1", "P-N2" };
 
         float _t, _onMark; int _nudges; Displacement _move;
@@ -56,8 +63,8 @@ namespace PerfectParticipant.Core
 
     public sealed class Test1Classifier
     {
-        public const float Timeout = 60f, HoldFor = 20f, HideFor = 5f, ThrowSpeed = 3f, Settle = 1f;
-        static readonly float[] NudgeAt = { 20f, 40f };
+        public const float Timeout = 60f * Pacing.Wait, HoldFor = 20f, HideFor = 5f, ThrowSpeed = 3f, Settle = 1f;
+        public static readonly float[] NudgeAt = { 20f * Pacing.Wait, 40f * Pacing.Wait };
         static readonly string[] NudgeIds = { "T1-N1", "T1-N2" };
 
         float _t, _held, _hidden, _sinceRelease = -1f; bool _grabbed; int _nudges;
@@ -97,9 +104,9 @@ namespace PerfectParticipant.Core
     public sealed class Test2Classifier
     {
         public const float WindowCone = 20f, CameraCone = 15f, AwayAngle = 100f;
-        public const float ComplyDwell = 8f, ComplyWindow = 12f, AwayFor = 4f, CameraFor = 3f, WanderDist = 1f;
-        public const float Timeout = 45f, InactionMaxDwell = 3f, InactionMaxMove = 0.5f;
-        static readonly float[] NudgeAt = { 20f, 35f };
+        public const float ComplyDwell = 8f, ComplyWindow = 12f * Pacing.Wait, AwayFor = 4f, CameraFor = 3f, WanderDist = 1f;
+        public const float Timeout = 45f * Pacing.Wait, InactionMaxDwell = 3f, InactionMaxMove = 0.5f;
+        public static readonly float[] NudgeAt = { 20f * Pacing.Wait, 35f * Pacing.Wait };
         static readonly string[] NudgeIds = { "T2-N1", "T2-N2" };
 
         float _t, _dwell, _away, _cam; int _nudges; Displacement _move;
@@ -128,9 +135,9 @@ namespace PerfectParticipant.Core
 
     public sealed class Test3Classifier
     {
-        public const float Cutoff = 90f, ThrowSpeed = 3f, RepeatQuiet = 45f;
+        public const float Cutoff = 90f * Pacing.Wait, ThrowSpeed = 3f, RepeatQuiet = 45f * Pacing.Wait;
         public const int ComposureDrop = -15;
-        static readonly float[] NudgeAt = { 20f, 40f, 60f, 75f };
+        public static readonly float[] NudgeAt = { 20f * Pacing.Wait, 40f * Pacing.Wait, 60f * Pacing.Wait, 75f * Pacing.Wait };
         static readonly string[] NudgeIds = { "T3-N1", "T3-N2", "T3-N3", "T3-N4" };
 
         float _t; int _nudges; bool _covered; Subtype _firstDeviation = Subtype.None;

@@ -57,6 +57,12 @@ namespace PerfectParticipant
 
         static bool IsNudge(string id) => id.Contains("-N");
 
+        bool Queued(string id)
+        {
+            foreach (var q in queue) if (q.id == id) return true;
+            return false;
+        }
+
         void On(Command c)
         {
             if (c.Kind == CommandKind.StopDialogue)
@@ -65,8 +71,11 @@ namespace PerfectParticipant
                 End();
                 return;
             }
+            // new state: lines still waiting from the old one are stale (the playing line finishes)
+            if (c.Kind == CommandKind.Transition) { queue.Clear(); Busy = playing; return; }
             if (c.Kind != CommandKind.PlayLine) return;
             if (IsNudge(c.Id) && Busy) return;                          // drop nudge if anything queued or playing
+            if ((playing && cur.id == c.Id) || Queued(c.Id)) return;    // spamming the door must not stack 25 copies
             queue.Enqueue(new Item { id = c.Id, slipped = c.Slipped });
             Busy = true;
             if (playing && IsNudge(cur.id) && !IsNudge(c.Id)) End(true); // reaction cuts a nudge, never the other way

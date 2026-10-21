@@ -379,14 +379,18 @@ namespace PerfectParticipant.Editor
             c.gameObject.AddComponent<GrabTracker>().kind = GrabKind.Other;
             Led("LED_Clipboard", c, new Vector3(0.01f, 0.15f, 0.09f), new Vector3(0.006f, 0.012f, 0.012f));
             var y = new Vector3(0, YawW, 0);
-            // brief: "The line for C is torn off". Sheet ends in a ragged tear through the C line, the board shows below.
+            // brief: "The line for C is torn off". "C." survives on a stub at the left; the rest of its line is ripped away,
+            // so the eye reads that something should follow. Local z = across the sheet (-0.1 left), y = up.
             var paper = M("Paper", G(0.88f), 0.05f);
-            Qd("Paper", c, new Vector3(0.0085f, 0.06f, 0), new Vector2(0.2f, 0.13f), paper, y); // top 0.125 down to the tear at -0.005, just under "C."
-            for (int i = 0; i < 7; i++) // tear: paper diamonds of uneven size hang below the cut edge
+            Qd("Paper", c, new Vector3(0.0085f, 0.0775f, 0), new Vector2(0.2f, 0.095f), paper, y); // top 0.125 down to 0.03, the top of the C line
+            Qd("Stub", c, new Vector3(0.0085f, 0.012f, -0.083f), new Vector2(0.034f, 0.036f), paper, y); // carries "C."
+            for (int i = 0; i < 7; i++) // ragged edge along the rip, right of the stub
             {
-                float ts = 0.018f + 0.008f * ((i * 5) % 3);
-                Qd("Tear", c, new Vector3(0.0085f, -0.005f - 0.004f * ((i * 3) % 4), -0.09f + 0.03f * i), new Vector2(ts, ts), paper, new Vector3(0, YawW, 45));
+                float ts = 0.014f + 0.006f * ((i * 5) % 3);
+                Qd("Tear", c, new Vector3(0.0085f, 0.03f - 0.003f * ((i * 3) % 4), -0.055f + 0.025f * i), new Vector2(ts, ts), paper, new Vector3(0, YawW, 45));
             }
+            for (int i = 0; i < 2; i++) // and under the stub
+                Qd("Tear", c, new Vector3(0.0085f, -0.006f - 0.003f * i, -0.093f + 0.017f * i), new Vector2(0.014f, 0.014f), paper, new Vector3(0, YawW, 45));
             T("Text", c, new Vector3(0.0095f, -0.01f, 0), y, "Conditions:\nA. Compliance.\nB. Spontaneous Initiative.\nC.", 0.02f, new Vector2(0.19f, 0.26f), Ink, TextAlignmentOptions.TopLeft);
         }
 
@@ -429,7 +433,7 @@ namespace PerfectParticipant.Editor
             var c = E(n, null, pos).transform;
             Cb("Body", c, Vector3.zero, new Vector3(0.1f, 0.09f, 0.18f), M("Cam", G(0.18f), 0.3f));
             P(PrimitiveType.Cylinder, "Lens", c, new Vector3(0, 0, 0.1f), new Vector3(0.05f, 0.02f, 0.05f), M("Dark", G(0.05f), 0.05f), false, new Vector3(90, 0, 0));
-            Led(n == "CeilingCamera" ? "LED_Camera" : "RecLed", c, new Vector3(0.03f, 0.03f, 0.091f), new Vector3(0.012f, 0.012f, 0.004f));
+            Led(n == "CeilingCamera" ? "LED_Camera" : "LED_CameraB", c, new Vector3(0.03f, 0.03f, 0.091f), new Vector3(0.018f, 0.018f, 0.006f)); // blinked by RoomStateController
             c.LookAt(Vector3.zero);
         }
 

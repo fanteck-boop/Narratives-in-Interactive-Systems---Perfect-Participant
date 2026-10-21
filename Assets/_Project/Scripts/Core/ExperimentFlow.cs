@@ -7,7 +7,7 @@ namespace PerfectParticipant.Core
     // Returned list is reused: consume before next call.
     public sealed class ExperimentFlow
     {
-        public const float IntroDelay = 3f, AfterReaction = 2f, SlippedAt = 60;
+        public const float IntroDelay = 5f, AfterReaction = 4f, SlippedAt = 60; // 3 / 2 felt rushed (team, 2026-10-21)
 
         public readonly BehaviourModel Model = new BehaviourModel();
         public GameState State { get; private set; }

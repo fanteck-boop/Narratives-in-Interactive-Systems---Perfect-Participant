@@ -37,10 +37,11 @@ namespace PerfectParticipant.Tests
             return r;
         }
 
-        static Run Intake(Func<float, FrameInput> f, float max = 60) { var c = new IntakeClassifier(); return Go((dt, i) => c.Tick(dt, i), f, max); }
-        static Run T1(Func<float, FrameInput> f, float max = 90) { var c = new Test1Classifier(); return Go((dt, i) => c.Tick(dt, i), f, max); }
-        static Run T2(Func<float, FrameInput> f, float max = 60) { var c = new Test2Classifier(); return Go((dt, i) => c.Tick(dt, i), f, max); }
-        static Run T3(Func<float, FrameInput> f, float max = 300) { var c = new Test3Classifier(); return Go((dt, i) => c.Tick(dt, i), f, max); }
+        const float W = Pacing.Wait;
+        static Run Intake(Func<float, FrameInput> f, float max = 60 * W) { var c = new IntakeClassifier(); return Go((dt, i) => c.Tick(dt, i), f, max); }
+        static Run T1(Func<float, FrameInput> f, float max = 90 * W) { var c = new Test1Classifier(); return Go((dt, i) => c.Tick(dt, i), f, max); }
+        static Run T2(Func<float, FrameInput> f, float max = 60 * W) { var c = new Test2Classifier(); return Go((dt, i) => c.Tick(dt, i), f, max); }
+        static Run T3(Func<float, FrameInput> f, float max = 300 * W) { var c = new Test3Classifier(); return Go((dt, i) => c.Tick(dt, i), f, max); }
 
         static void Is(Run r, ResponseKind k, Subtype s, float t)
         {
@@ -58,9 +59,9 @@ namespace PerfectParticipant.Tests
         [Test] public void Intake_StillOffMark_WaitsPast25_InactionAt40_WithNudges()
         {
             var r = Intake(t => Idle());
-            Is(r, ResponseKind.Inaction, Subtype.None, 40f);
-            Assert.AreEqual("P-N1", r.Nudges[0].id); Assert.AreEqual(18f, r.Nudges[0].t, Tol);
-            Assert.AreEqual("P-N2", r.Nudges[1].id); Assert.AreEqual(32f, r.Nudges[1].t, Tol);
+            Is(r, ResponseKind.Inaction, Subtype.None, 40f * W);
+            Assert.AreEqual("P-N1", r.Nudges[0].id); Assert.AreEqual(18f * W, r.Nudges[0].t, Tol);
+            Assert.AreEqual("P-N2", r.Nudges[1].id); Assert.AreEqual(32f * W, r.Nudges[1].t, Tol);
         }
 
         [Test] public void Intake_WalkTowardMark_NotDeviate()
@@ -81,7 +82,8 @@ namespace PerfectParticipant.Tests
 
         [Test] public void Intake_LateOnMark_ComplyLate()
         {
-            Is(Intake(t => { var i = Idle(); if (t > 30f) i.DistFromMark = 0f; return i; }), ResponseKind.Comply, Subtype.Late, 31.5f);
+            const float at = IntakeClassifier.ComplyBy + 5f;
+            Is(Intake(t => { var i = Idle(); if (t > at) i.DistFromMark = 0f; return i; }), ResponseKind.Comply, Subtype.Late, at + 1.5f);
         }
 
         // ---------- Test 1 ----------
@@ -134,9 +136,9 @@ namespace PerfectParticipant.Tests
         [Test] public void T1_NoGrab_InactionAt60_Nudges20_40()
         {
             var r = T1(t => Idle());
-            Is(r, ResponseKind.Inaction, Subtype.None, 60f);
+            Is(r, ResponseKind.Inaction, Subtype.None, 60f * W);
             Assert.AreEqual(2, r.Nudges.Count);
-            Assert.AreEqual(20f, r.Nudges[0].t, Tol); Assert.AreEqual(40f, r.Nudges[1].t, Tol);
+            Assert.AreEqual(20f * W, r.Nudges[0].t, Tol); Assert.AreEqual(40f * W, r.Nudges[1].t, Tol);
         }
 
         // ---------- Test 2 ----------
@@ -147,7 +149,8 @@ namespace PerfectParticipant.Tests
 
         [Test] public void T2_LateDwell_ComplyLate()
         {
-            Is(T2(t => { var i = Idle(); if (t > 10f) i.GazeAngleToWindow = 5f; return i; }), ResponseKind.Comply, Subtype.Late, 18.1f);
+            const float at = Test2Classifier.ComplyWindow - 2f; // dwell starts inside the window, completes after it
+            Is(T2(t => { var i = Idle(); if (t > at) i.GazeAngleToWindow = 5f; return i; }), ResponseKind.Comply, Subtype.Late, at + 8.1f);
         }
 
         [Test] public void T2_TurnAway4s_Deviate()
@@ -163,13 +166,13 @@ namespace PerfectParticipant.Tests
         [Test] public void T2_Nothing_InactionAt45_Nudges20_35()
         {
             var r = T2(t => Idle());
-            Is(r, ResponseKind.Inaction, Subtype.None, 45f);
-            Assert.AreEqual(20f, r.Nudges[0].t, Tol); Assert.AreEqual(35f, r.Nudges[1].t, Tol);
+            Is(r, ResponseKind.Inaction, Subtype.None, 45f * W);
+            Assert.AreEqual(20f * W, r.Nudges[0].t, Tol); Assert.AreEqual(35f * W, r.Nudges[1].t, Tol);
         }
 
         [Test] public void T2_PartialDwellAt45_DeviateOther()
         {
-            Is(T2(t => { var i = Idle(); if (t < 5f) i.GazeAngleToWindow = 5f; return i; }), ResponseKind.Deviate, Subtype.Other, 45f);
+            Is(T2(t => { var i = Idle(); if (t < 5f) i.GazeAngleToWindow = 5f; return i; }), ResponseKind.Deviate, Subtype.Other, 45f * W);
         }
 
         // ---------- Test 3 ----------
@@ -181,30 +184,32 @@ namespace PerfectParticipant.Tests
         [Test] public void T3_Nothing_NudgesComposureCutoff90()
         {
             var r = T3(t => Idle());
-            Is(r, ResponseKind.Inaction, Subtype.None, 90f);
+            Is(r, ResponseKind.Inaction, Subtype.None, 90f * W);
             CollectionAssert.AreEqual(new[] { "T3-N1", "T3-N2", "T3-N3", "T3-N4" }, r.Nudges.ConvertAll(n => n.id));
-            CollectionAssert.AreEqual(new[] { 20f, 40f, 60f, 75f }, r.Nudges.ConvertAll(n => (float)Math.Round(n.t)));
+            CollectionAssert.AreEqual(new[] { 20f * W, 40f * W, 60f * W, 75f * W }, r.Nudges.ConvertAll(n => (float)Math.Round(n.t)));
             Assert.AreEqual(-30, r.Composure);
         }
 
         [Test] public void T3_Deviation_RepeatPrompt_OneRestart_SecondDoesNotExtend()
         {
+            float n1 = 20f * W, door = n1 + 10f, second = door + 70f * W;
             var r = T3(t =>
             {
                 var i = Idle();
-                i.DoorGrabbed = Math.Abs(t - 30f) < 0.01f;
-                i.ConsoleMoved = Math.Abs(t - 100f) < 0.01f;
+                i.DoorGrabbed = Math.Abs(t - door) < 0.01f;
+                i.ConsoleMoved = Math.Abs(t - second) < 0.01f;
                 return i;
             });
             Assert.AreEqual(2, r.Deviations.Count);
             Assert.AreEqual(Subtype.TriedDoor, r.Deviations[0].d);
             Assert.AreEqual(Subtype.MovedButton, r.Deviations[1].d);
-            Assert.AreEqual(("T3-N1", 20f), (r.Nudges[0].id, (float)Math.Round(r.Nudges[0].t)));
+            Assert.AreEqual(("T3-N1", n1), (r.Nudges[0].id, (float)Math.Round(r.Nudges[0].t)));
             Assert.AreEqual("T3-R", r.Nudges[1].id);
-            Assert.AreEqual(30f, r.Nudges[1].t, Tol);
+            Assert.AreEqual(door, r.Nudges[1].t, Tol);
             Assert.AreEqual("T3-N1", r.Nudges[2].id);
-            Assert.AreEqual(75f, r.Nudges[2].t, Tol); // 45 s quiet after repeat
-            Is(r, ResponseKind.Inaction, Subtype.None, 30f + 45f + 70f); // cutoff not extended by 2nd deviation
+            Assert.AreEqual(door + Test3Classifier.RepeatQuiet, r.Nudges[2].t, Tol); // quiet after repeat
+            // cutoff measured from the restart, not extended by the 2nd deviation
+            Is(r, ResponseKind.Inaction, Subtype.None, door + Test3Classifier.Cutoff - (n1 - Test3Classifier.RepeatQuiet));
         }
 
         [Test] public void T3_PressAfterDeviation_Deviate()

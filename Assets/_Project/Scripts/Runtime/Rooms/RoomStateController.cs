@@ -30,7 +30,7 @@ namespace PerfectParticipant
         static readonly Preset Warm = new Preset(new Color(1f, 0.82f, 0.55f), 1.2f);
 
         Tier tier;
-        bool emergency, warm, humOn, pulse;
+        bool emergency, warm, humOn, pulse, recording;
         int composure = 100;
         Color lightCol = Tiers[0].c;
         float lightK = 1f;
@@ -204,7 +204,7 @@ namespace PerfectParticipant
                     break;
                 case GameState.EndE1:
                     warm = true;
-                    foreach (var k in new List<string>(leds.Keys)) if (k != "LED_Camera") SetLed(k, Green);
+                    foreach (var k in new List<string>(leds.Keys)) if (!k.StartsWith("LED_Camera")) SetLed(k, Green);
                     Beep(PlaceholderAudio.Applause(), grille ? grille.position : Vector3.up * 2.5f, 0.7f);
                     Beep(PlaceholderAudio.Chime(), door ? door.position : Vector3.back * 2f, 1f);
                     Unlock(false);
@@ -233,7 +233,8 @@ namespace PerfectParticipant
                 case RoomEvents.HumStop: humOn = false; break;
                 case RoomEvents.RecorderClick:
                     Beep(PlaceholderAudio.Click(), camT ? camT.position : Vector3.up * 2.5f, 1f);
-                    SetLed("LED_Camera", Color.black);
+                    recording = false; // the recorder stops: both camera lights go dark
+                    SetLed("LED_Camera", Color.black); SetLed("LED_CameraB", Color.black);
                     break;
                 case RoomEvents.BlindsUp: blindsTarget = 1f; break;
                 case RoomEvents.ClipboardFall: Fall(); break;
@@ -281,7 +282,7 @@ namespace PerfectParticipant
             if (voiceHomeSet && dialogue) dialogue.Voice.localPosition = voiceLocal;
             foreach (var l in leds.Values) l.tgt = Color.black;
             SetLed("LED_Door", Red);
-            SetLed("LED_Camera", Red);
+            recording = true;
         }
 
         void ApplyProps()
@@ -381,6 +382,10 @@ namespace PerfectParticipant
                 doorAngle = next;
             }
 
+            if (recording) // slow red recording blink, 0.5 Hz (brief: nothing faster than 1 Hz); B is offset so they never sync
+                for (int i = 0; i < 2; i++)
+                    if (leds.TryGetValue(i == 0 ? "LED_Camera" : "LED_CameraB", out var cl))
+                        cl.tgt = Mathf.Repeat(Time.time + i * 0.7f, 2f) < 0.6f ? Red * 1.6f : Red * 0.05f;
             if (pulse && leds.TryGetValue("ConsentButton", out var pb)) pb.tgt = Amber * (0.6f + 0.4f * Mathf.Sin(Time.time * Mathf.PI)); // 0.5 Hz
             float la = 1f - Mathf.Exp(-dt / 0.5f);
             foreach (var l in leds.Values)
