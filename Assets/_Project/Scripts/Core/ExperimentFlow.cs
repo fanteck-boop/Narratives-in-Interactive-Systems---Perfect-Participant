@@ -8,6 +8,8 @@ namespace PerfectParticipant.Core
     public sealed class ExperimentFlow
     {
         public const float IntroDelay = 5f, AfterReaction = 4f, SlippedAt = 60; // 3 / 2 felt rushed (team, 2026-10-21)
+        public const int ClipboardComposure = -10; // per clipboard throw (team, 2026-10-21)
+        int _clipThrows;
 
         public readonly BehaviourModel Model = new BehaviourModel();
         public GameState State { get; private set; }
@@ -33,6 +35,13 @@ namespace PerfectParticipant.Core
             StateTime += dt;
             if (i.ReadingForm) Model.Flags |= Flag.ReadForm;
             if (i.DoorGrabbed) Model.Flags |= Flag.TriedDoor;
+            // own event, any time the narrator still holds it together; the running test keeps going
+            if (i.ClipboardThrown && !Finished && State != GameState.Refusal && State != GameState.EndE3)
+            {
+                Model.AddComposure(ClipboardComposure);
+                Sync();
+                Play(Lines.ClipboardThrow[_clipThrows++ % Lines.ClipboardThrow.Length]);
+            }
 
             if (State == GameState.Refusal && i.ButtonPressed && !_pressedInRefusal) { LateConsent(); return _out; }
 

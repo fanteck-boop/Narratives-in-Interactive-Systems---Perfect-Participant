@@ -225,6 +225,8 @@ namespace PerfectParticipant.Editor
             Cb("FrameRight", w, new Vector3(0.77f, 0, -0.02f), new Vector3(0.04f, 1.2f, 0.04f), f);
             Cb("Sill", w, new Vector3(0, -0.64f, -0.07f), new Vector3(1.7f, 0.03f, 0.12f), f);
             Cb("WindowBlinds", w, new Vector3(0, 0, -0.045f), new Vector3(1.5f, 1.2f, 0.01f), M("Blind", G(0.45f))); // RoomStateController raises it
+            var pane = E("GlassCollider", w, new Vector3(0, 0, -0.012f)).AddComponent<BoxCollider>(); // the glass is a quad: without this, thrown things fly into the booth
+            pane.size = new Vector3(1.5f, 1.2f, 0.03f);
             // dents at cube height, previous participants threw it
             var d = M("Dent", G(0.38f));
             for (int i = 0; i < 3; i++) Qd($"Dent_{i + 1}", null, new Vector3(-0.4f + 0.35f * i, 0.8f + 0.02f * i, 1.992f), new Vector2(0.07f, 0.07f), d, new Vector3(0, 0, 20 * i));
@@ -414,7 +416,7 @@ namespace PerfectParticipant.Editor
             crb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative; // thin board tunnelled through the 0.1 m wall
             crb.mass = 0.4f;
             c.gameObject.AddComponent<XRGrabInteractable>().movementType = XRBaseInteractable.MovementType.VelocityTracking; // collides with walls while held
-            c.gameObject.AddComponent<GrabTracker>().kind = GrabKind.Other;
+            c.gameObject.AddComponent<GrabTracker>().kind = GrabKind.Clipboard; // own kind: not "other object moved" in the tests
             Led("LED_Clipboard", c, new Vector3(0.01f, 0.15f, 0.09f), new Vector3(0.006f, 0.012f, 0.012f));
             var y = new Vector3(0, YawW, 0);
             // brief: "The line for C is torn off". "C." survives on a stub at the left; the rest of its line is ripped away,

@@ -254,6 +254,21 @@ namespace PerfectParticipant.Tests
             Assert.AreEqual(EndingId.E3, f.Ending);
         }
 
+        // Throwing the clipboard is its own event: composure drops, a reaction plays, the running test is not resolved.
+        [Test] public void ClipboardThrow_DropsComposure_CyclesLines_DoesNotResolveTest()
+        {
+            var f = new ExperimentFlow();
+            f.JumpTo(GameState.Test1);
+            var i = Idle(); i.ClipboardThrown = true;
+            var a = new List<Command>(f.Tick(Dt, i));
+            var b = new List<Command>(f.Tick(Dt, i));
+            Assert.AreEqual(100 + 2 * ExperimentFlow.ClipboardComposure, f.Model.Composure);
+            CollectionAssert.Contains(LineIds(a).ToList(), Lines.ClipboardThrow[0]);
+            CollectionAssert.Contains(LineIds(b).ToList(), Lines.ClipboardThrow[1]);
+            Assert.IsFalse(a.Concat(b).Any(c => c.Kind == CommandKind.Classified));
+            Assert.AreEqual(GameState.Test1, f.State);
+        }
+
         [Test] public void WrongCorridorDoor_AfterFullCompliance_GivesE2()
         {
             var f = new ExperimentFlow();

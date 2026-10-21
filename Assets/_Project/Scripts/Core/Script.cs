@@ -67,6 +67,11 @@ namespace PerfectParticipant.Core
             ["R-06"] = "The door is open. I did not open it. Nobody told it to. You can go.",
             ["R-C"] = "Thank you. Thank you, that is... thank you. Consent obtained.",
 
+            // clipboard thrown, any test (team 2026-10-21, DRAFT); played in turn, see ClipboardThrow
+            ["CB-T1"] = "The participant has thrown the clipboard. The clipboard is not part of the procedure. Neither, it seems, is gravity.",
+            ["CB-T2"] = "The clipboard again. The participant takes a keen interest in our paperwork. We are flattered.",
+            ["CB-T3"] = "Please put the clipboard... The participant is free to do as they like. Within reason.",
+
             // Test 4, corridor (team 2026-10-21, DRAFT). We are in Room Three (P-01), so the corridor doors are 4, 5, 6; asked for 6.
             ["T3-Go"] = "Consent is recorded. One step remains. The door is now open. Please continue into the corridor.",
             ["T4-N0"] = "The corridor is just through the door. Whenever you are ready.",
@@ -87,6 +92,8 @@ namespace PerfectParticipant.Core
             ["E2-03b"] = "You consented in the end. The record will say that you consented.",
             ["E2-03"] = "In every case, you cooperated. Thank you for your cooperation. You may go now.",
         };
+
+        public static readonly string[] ClipboardThrow = { "CB-T1", "CB-T2", "CB-T3" };
 
         public static string ForTier(string prefix, Tier t) =>
             prefix + (t == Tier.Flagged ? "-F" : t == Tier.Unclassified ? "-U" : "-V");

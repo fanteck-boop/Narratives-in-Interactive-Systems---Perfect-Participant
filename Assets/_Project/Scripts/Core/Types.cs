@@ -53,6 +53,7 @@ namespace PerfectParticipant.Core
         public bool ConsoleMoved;           // edge, console / button panel grabbed
         public bool DoorGrabbed;            // edge, door handle grab attempt
         public int CorridorDoor;            // edge, room number of the corridor door grabbed (4, 5, 6), 0 = none
+        public bool ClipboardThrown;        // edge, clipboard released faster than Test1Classifier.ThrowSpeed (own event, never a test response)
         public bool TouchedTableOrConsole;  // level, hand or controller inside TableZone or console collider
         public bool OtherObjectMoved;       // edge, any grabbable other than cube, console, door grabbed
         public bool ReadingForm;            // level, head within 0.5 m of form and facing it

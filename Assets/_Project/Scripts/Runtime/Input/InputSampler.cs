@@ -19,7 +19,7 @@ namespace PerfectParticipant
         Transform window, ceilingCam, form;
         Zone mark, tray, table, button;
         Collider[] consoleCols;
-        bool bPress, bConsole, bDoor, bOther, bRel;
+        bool bPress, bConsole, bDoor, bOther, bRel, bClipThrow;
         float relSpeed, offTime;
         int corridorDoor;
         bool pInTray, pWin, pCam, pAway, pMark;
@@ -48,12 +48,14 @@ namespace PerfectParticipant
                 case GrabKind.Console: bConsole = true; Raise(PlayerEventType.ConsoleMoved, g.name); break;
                 case GrabKind.Door: bDoor = true; Raise(PlayerEventType.DoorGrabbed, g.name); break;
                 case GrabKind.CorridorDoor: corridorDoor = g.number; Raise(PlayerEventType.DoorGrabbed, g.name); break;
+                case GrabKind.Clipboard: Raise(PlayerEventType.ObjectMoved, g.name); break; // logged only: picking it up is not a test response
                 default: bOther = true; Raise(PlayerEventType.ObjectMoved, g.name); break;
             }
         }
 
         void OnRelease(GrabTracker g, float speed)
         {
+            if (g.kind == GrabKind.Clipboard && speed > Test1Classifier.ThrowSpeed) { bClipThrow = true; Raise(PlayerEventType.ObjectMoved, "Clipboard thrown " + speed.ToString("F1")); }
             if (g.kind != GrabKind.Cube) return;
             bRel = true; relSpeed = speed;
             Raise(PlayerEventType.CubeReleased, speed.ToString("F1"));
@@ -167,11 +169,11 @@ namespace PerfectParticipant
 
             f.CubeReleased = bRel; f.CubeReleaseSpeed = relSpeed;
             f.ButtonPressed = bPress; f.ConsoleMoved = bConsole; f.DoorGrabbed = bDoor; f.OtherObjectMoved = bOther;
-            f.ButtonCovered = button && button.HasKind(GrabKind.Other);
+            f.ButtonCovered = button && (button.HasKind(GrabKind.Other) || button.HasKind(GrabKind.Clipboard)); // clipboard over the button still covers it
             f.TouchedTableOrConsole = Touching(leftHand) || Touching(rightHand);
 
-            f.CorridorDoor = corridorDoor;
-            bPress = bConsole = bDoor = bOther = bRel = false; relSpeed = 0f; corridorDoor = 0;
+            f.CorridorDoor = corridorDoor; f.ClipboardThrown = bClipThrow;
+            bPress = bConsole = bDoor = bOther = bRel = bClipThrow = false; relSpeed = 0f; corridorDoor = 0;
             return f;
         }
     }

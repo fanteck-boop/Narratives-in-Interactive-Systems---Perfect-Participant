@@ -6,7 +6,7 @@ using UnityEngine.XR.Interaction.Toolkit.Interactables;
 
 namespace PerfectParticipant
 {
-    public enum GrabKind { Cube, Console, Door, Other, CorridorDoor }
+    public enum GrabKind { Cube, Console, Door, Other, CorridorDoor, Clipboard }
 
     // On every grabbable (Cube, Console, DoorHandle, clipboard, chair). XRI feeds it; DesktopRig calls Grab/Release directly.
     public class GrabTracker : MonoBehaviour
