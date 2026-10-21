@@ -1,0 +1,17 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fd8bd02413d71e54f8a67e7123d672a0, type: 3}
+  m_Name: C-Go4
+  m_EditorClassIdentifier: PerfectParticipant.Runtime::PerfectParticipant.DialogueLine
+  id: C-Go4
+  clean: {fileID: 8300000, guid: 50663984d4afde24594f5fd7ac20e189, type: 3}
+  slipped: {fileID: 8300000, guid: 2651a62d7b0dc5e4bb70e57a6219a55d, type: 3}

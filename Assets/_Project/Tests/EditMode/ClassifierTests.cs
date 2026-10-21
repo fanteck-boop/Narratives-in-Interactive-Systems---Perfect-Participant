@@ -12,7 +12,7 @@ namespace PerfectParticipant.Tests
         // Player standing at spawn, looking at nothing in particular.
         public static FrameInput Idle() => new FrameInput
         {
-            HeadZ = -1.2f, DistFromMark = 1.2f, GazeAngleToWindow = 90f, GazeAngleToCamera = 90f, FacingAwayAngle = 60f
+            HeadZ = -1.2f, DistFromMark = 1.2f, GazeAngleToWindow = 90f, GazeAngleToCamera = 90f, FacingAwayAngle = 60f, GazeAngleToScreen = 90f
         };
 
         public class Run

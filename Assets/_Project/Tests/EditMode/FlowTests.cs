@@ -43,14 +43,15 @@ namespace PerfectParticipant.Tests
         [Test] public void PickEnding_Rules()
         {
             var m = new BehaviourModel();
-            m.Apply(ResponseKind.Comply); m.Apply(ResponseKind.Comply); m.Apply(ResponseKind.Comply);
-            Assert.AreEqual(EndingId.E1, m.PickEnding(ResponseKind.Comply, false, ResponseKind.Comply));
-            Assert.AreEqual(EndingId.E2, m.PickEnding(ResponseKind.Comply, false, ResponseKind.Deviate)); // wrong door
-            Assert.AreEqual(EndingId.E2, m.PickEnding(ResponseKind.Deviate, false, ResponseKind.Comply));
-            Assert.AreEqual(EndingId.E3, m.PickEnding(ResponseKind.Inaction, false, ResponseKind.Comply));
-            Assert.AreEqual(EndingId.E2, m.PickEnding(ResponseKind.Inaction, true, ResponseKind.Comply));
-            var two = new BehaviourModel(); two.Apply(ResponseKind.Comply); two.Apply(ResponseKind.Comply); // T3 + T4 only
-            Assert.AreEqual(EndingId.E2, two.PickEnding(ResponseKind.Comply, false, ResponseKind.Comply));
+            for (int n = 0; n < BehaviourModel.E1Complies; n++) m.Apply(ResponseKind.Comply);
+            Assert.AreEqual(EndingId.E1, m.PickEnding(ResponseKind.Comply, false, true));
+            Assert.AreEqual(EndingId.E2, m.PickEnding(ResponseKind.Comply, false, false)); // strayed off the route
+            Assert.AreEqual(EndingId.E2, m.PickEnding(ResponseKind.Deviate, false, true));
+            Assert.AreEqual(EndingId.E3, m.PickEnding(ResponseKind.Inaction, false, true));
+            Assert.AreEqual(EndingId.E2, m.PickEnding(ResponseKind.Inaction, true, true));
+            var few = new BehaviourModel(); // T3 + the route only, no Test1/Test2 comply
+            for (int n = 0; n < BehaviourModel.E1Complies - 1; n++) few.Apply(ResponseKind.Comply);
+            Assert.AreEqual(EndingId.E2, few.PickEnding(ResponseKind.Comply, false, true));
         }
     }
 
@@ -59,12 +60,12 @@ namespace PerfectParticipant.Tests
         const ResponseKind C = ResponseKind.Comply, D = ResponseKind.Deviate, I = ResponseKind.Inaction;
         static readonly ResponseKind[] Kinds = { C, D, I };
 
-        // Drives a full run. Narrator lines are instant (NarratorBusy false). Test4: walk into the corridor, open `corridorDoor`.
+        // Drives a full run. Narrator lines are instant (NarratorBusy false). Test4: walk the route cleanly (RouteDriver).
         // Refusal path stands still after R-06, so it ends on the E3 card without the corridor.
-        internal static List<Command> Play(ExperimentFlow f, ResponseKind intake, ResponseKind[] plan, float pressInRefusalAt = -1f, int corridorDoor = Test4Classifier.AskedDoor)
+        internal static List<Command> Play(ExperimentFlow f, ResponseKind intake, ResponseKind[] plan, float pressInRefusalAt = -1f)
         {
             var log = new List<Command>();
-            bool doorDone = false, corridorDone = false;
+            bool doorDone = false;
             for (int n = 0; n * Dt < 1500f && !f.Finished; n++)
             {
                 var i = Idle();
@@ -94,15 +95,28 @@ namespace PerfectParticipant.Tests
                     case GameState.Refusal:
                         i.ButtonPressed = pressInRefusalAt >= 0f && t > pressInRefusalAt;
                         break;
-                    case GameState.Test4:
-                        i.HeadZ = Refusal.DoorZ - 0.8f;
-                        if (t > 2f && !corridorDone) { i.CorridorDoor = corridorDoor; corridorDone = true; }
-                        break;
+                    case GameState.Test4: RouteDriver(f, ref i); break;
                 }
                 log.AddRange(f.Tick(Dt, i));
             }
             Assert.IsTrue(f.Finished, "run did not finish");
             return log;
+        }
+
+        const float CorridorZ = -2.8f, InRoomZ = -4.8f;
+
+        // Stand at the target's door and try it until it opens, then go in and do its task.
+        internal static void RouteDriver(ExperimentFlow f, ref FrameInput i)
+        {
+            int n = f.RouteTarget;
+            i.HeadZ = CorridorZ;
+            if (n == 0) return;
+            i.HeadX = CorridorLayout.DoorX(n);
+            if (f.InRoom != n && !f.IsDoorOpen(n)) { i.CorridorDoor = n; return; } // inside, the door is shut behind us
+            i.HeadZ = n == 8 ? CorridorLayout.SeatZ : InRoomZ;
+            if (n == 2) i.BoxOnShelf = true;
+            if (n == 4) i.GazeAngleToScreen = 0f;
+            if (n == 7) i.RoomButton = 7;
         }
 
         static IEnumerable<string> LineIds(List<Command> log) => log.Where(c => c.Kind == CommandKind.PlayLine).Select(c => c.Id);
@@ -118,7 +132,7 @@ namespace PerfectParticipant.Tests
                 : plan[2] == D ? EndingId.E2
                 : plan[0] == C || plan[1] == C ? EndingId.E1 : EndingId.E2;
             Assert.AreEqual(expected, f.Ending, name);
-            int t4 = plan[2] != I ? 1 : 0; // corridor comply (refusal path stands still and skips it)
+            int t4 = plan[2] != I ? CorridorLayout.Order.Length : 0; // route complies (refusal path stands still and skips it)
             Assert.AreEqual(plan.Count(k => k == C) + t4, f.Model.C, name + " C");
             Assert.AreEqual(plan.Count(k => k == D), f.Model.D, name + " D");
             Assert.AreEqual(plan.Count(k => k == I), f.Model.I, name + " I");
@@ -191,7 +205,7 @@ namespace PerfectParticipant.Tests
             var log = Play(f, D, new[] { C, C, C });
             Assert.Contains("T1-01b", LineIds(log).ToList());
             Assert.AreEqual(ResponseKind.Deviate, f.Model.PrologueResponse);
-            Assert.AreEqual(4, f.Model.C + f.Model.D + f.Model.I); // Tests 1 to 4 scored, intake not
+            Assert.AreEqual(3 + CorridorLayout.Order.Length, f.Model.C + f.Model.D + f.Model.I); // Tests 1-3 and each route room scored, intake not
         }
 
         [Test] public void Force_ResolvesCurrentTest()
@@ -232,7 +246,7 @@ namespace PerfectParticipant.Tests
             Assert.IsTrue(f.Finished);
         }
 
-        // Walking out after R-06 enters the corridor test; whatever door is chosen, refusal still ends on RESULT: NONE.
+        // Walking out after R-06 enters the corridor route; walked through, refusal still ends on RESULT: NONE.
         [Test] public void E3_WalkOut_EntersCorridor_ThenCardNone()
         {
             var f = new ExperimentFlow();
@@ -243,15 +257,86 @@ namespace PerfectParticipant.Tests
             var cmds = new List<Command>(f.Tick(Dt, i));
             Assert.AreEqual(GameState.Test4, f.State);
             Assert.IsFalse(cmds.Any(c => c.Kind == CommandKind.RoomEvent && c.Id == RoomEvents.DoorUnlock), "door already open");
-            for (int n = 0; n < 20; n++) cmds.AddRange(f.Tick(Dt, i));
-            CollectionAssert.Contains(LineIds(cmds).ToList(), "T4-01");
-            i.CorridorDoor = 5;
-            cmds.AddRange(f.Tick(Dt, i));
-            i.CorridorDoor = 0;
-            for (int n = 0; n < 100 && !f.Finished; n++) cmds.AddRange(f.Tick(Dt, i));
-            CollectionAssert.Contains(LineIds(cmds).ToList(), "T4-D5");
+            for (int n = 0; n < 5000 && !f.Finished; n++) { var r = Idle(); RouteDriver(f, ref r); cmds.AddRange(f.Tick(Dt, r)); }
+            CollectionAssert.Contains(LineIds(cmds).ToList(), "C-01");
             Assert.IsTrue(CardShown(cmds));
             Assert.AreEqual(EndingId.E3, f.Ending);
+        }
+
+        // In the corridor at the first door, C-01 already played.
+        static (ExperimentFlow f, List<Command> log) Corridor()
+        {
+            var f = new ExperimentFlow();
+            var log = new List<Command>(f.JumpTo(GameState.Test4));
+            var i = Idle(); i.HeadZ = CorridorZ;
+            log.AddRange(f.Tick(Dt, i));
+            return (f, log);
+        }
+
+        static FrameInput At(int room, bool inside)
+        {
+            var i = Idle(); i.HeadX = CorridorLayout.DoorX(room); i.HeadZ = inside ? InRoomZ : CorridorZ;
+            return i;
+        }
+
+        static bool Has(List<Command> log, string ev, int room) => log.Any(c => c.Kind == CommandKind.RoomEvent && c.Id == ev && c.Value == room);
+
+        [Test] public void Route_WrongRoom_ClosesBehind_TaskLetsOut_CountsDeviate_TargetUnchanged()
+        {
+            var (f, log) = Corridor();
+            var i = At(5, false); i.CorridorDoor = 5;
+            log.AddRange(f.Tick(Dt, i));
+            Assert.IsTrue(f.IsDoorOpen(5));
+            log.AddRange(f.Tick(Dt, At(5, true)));
+            Assert.IsTrue(Has(log, RoomEvents.DoorClose, 5));
+            CollectionAssert.IsSubsetOf(new[] { "RW-01", "R5-01" }, LineIds(log).ToList());
+            Assert.AreEqual(1, f.Model.D);
+            i = At(5, true); i.RoomButton = 5;
+            log.AddRange(f.Tick(Dt, i));
+            CollectionAssert.Contains(LineIds(log).ToList(), "R5-C");
+            Assert.IsTrue(f.IsDoorOpen(5));
+            Assert.AreEqual(2, f.RouteTarget);
+        }
+
+        [Test] public void Route_WrongRoom_WaitOut_Reopens()
+        {
+            var (f, log) = Corridor();
+            var i = At(5, false); i.CorridorDoor = 5;
+            log.AddRange(f.Tick(Dt, i));
+            for (float t = 0f; t < ExperimentFlow.RoomWaitOut + 1f; t += Dt) log.AddRange(f.Tick(Dt, At(5, true)));
+            CollectionAssert.Contains(LineIds(log).ToList(), "R-Wait");
+            Assert.IsTrue(f.IsDoorOpen(5));
+            Assert.AreEqual(2, f.RouteTarget);
+        }
+
+        [Test] public void Route_Forbidden_LockedWithoutKey_KeyOpens_NeverTraps()
+        {
+            var (f, log) = Corridor();
+            var i = At(3, false); i.CorridorDoor = 3;
+            log.AddRange(f.Tick(Dt, i));
+            log.AddRange(f.Tick(Dt, i)); // second try: same line, no second composure hit
+            Assert.IsFalse(f.IsDoorOpen(3));
+            CollectionAssert.Contains(LineIds(log).ToList(), "F-Locked");
+            Assert.AreEqual(100 + ExperimentFlow.LockedComposure, f.Model.Composure);
+            i.HoldingKey = true;
+            log.AddRange(f.Tick(Dt, i));
+            Assert.IsTrue(f.IsDoorOpen(3));
+            log.AddRange(f.Tick(Dt, At(3, true)));
+            CollectionAssert.Contains(LineIds(log).ToList(), "F-3");
+            Assert.IsFalse(Has(log, RoomEvents.DoorClose, 3), "forbidden room never traps");
+            Assert.IsTrue(log.Any(c => c.Kind == CommandKind.Classified && c.Subtype == Subtype.Forbidden));
+        }
+
+        [Test] public void Route_OutOfOrder_RoomFourFirst_IsDeviate_TargetStaysTwo()
+        {
+            var f = new ExperimentFlow();
+            f.JumpTo(GameState.Test4);
+            var i = At(4, false); i.CorridorDoor = 4;
+            f.Tick(Dt, At(4, false)); // enter corridor
+            f.Tick(Dt, i);
+            f.Tick(Dt, At(4, true));
+            Assert.AreEqual(1, f.Model.D);
+            Assert.AreEqual(2, f.RouteTarget);
         }
 
         // Throwing the clipboard is its own event: composure drops, a reaction plays, the running test is not resolved.
@@ -269,22 +354,17 @@ namespace PerfectParticipant.Tests
             Assert.AreEqual(GameState.Test1, f.State);
         }
 
-        [Test] public void WrongCorridorDoor_AfterFullCompliance_GivesE2()
-        {
-            var f = new ExperimentFlow();
-            Play(f, C, new[] { C, C, C }, corridorDoor: 4);
-            Assert.AreEqual(EndingId.E2, f.Ending);
-            Assert.AreEqual(1, f.Model.D);
-        }
-
-        [Test] public void Consent_OpensDoor_ThenCorridorPrompt()
+        [Test] public void Consent_OpensDoor_ThenCorridorPrompt_ThenRouteInOrder()
         {
             var f = new ExperimentFlow();
             var log = Play(f, C, new[] { C, C, C });
             int unlock = log.FindIndex(c => c.Kind == CommandKind.RoomEvent && c.Id == RoomEvents.DoorUnlock);
             int go = log.FindIndex(c => c.Kind == CommandKind.PlayLine && c.Id == "T3-Go");
-            int prompt = log.FindIndex(c => c.Kind == CommandKind.PlayLine && c.Id == "T4-01");
+            int prompt = log.FindIndex(c => c.Kind == CommandKind.PlayLine && c.Id == "C-01");
             Assert.IsTrue(unlock >= 0 && go > unlock && prompt > go, $"unlock {unlock}, go {go}, prompt {prompt}");
+            var done = LineIds(log).Where(id => id.EndsWith("-C") && id.StartsWith("R")).ToList();
+            CollectionAssert.AreEqual(new[] { "R2-C", "R4-C", "R7-C", "R8-C" }, done);
+            Assert.AreEqual(EndingId.E1, f.Ending);
         }
     }
 }

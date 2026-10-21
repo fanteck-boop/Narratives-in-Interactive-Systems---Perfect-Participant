@@ -4,7 +4,7 @@ namespace PerfectParticipant.Core
 {
     public enum TestId { Intake, Test1, Test2, Test3, Test4 }
     public enum ResponseKind { None, Comply, Deviate, Inaction }
-    public enum Subtype { None, Late, Hold, Throw, Hide, Other, TurnedAway, Camera, MovedButton, CubeOnButton, TriedDoor, Door4, Door5 }
+    public enum Subtype { None, Late, Hold, Throw, Hide, Other, TurnedAway, Camera, MovedButton, CubeOnButton, TriedDoor, WrongRoom, Forbidden }
     public enum Tier { Neutral, Valued, Flagged, Unclassified }
     // Test4 = corridor door choice after Test3 (all paths, team 2026-10-21). Kept before Refusal: Force checks State <= Test4.
     public enum GameState { Intake, Test1, Test2, Test3, Test4, Refusal, EndE1, EndE2, EndE3 }
@@ -52,7 +52,11 @@ namespace PerfectParticipant.Core
         public bool ButtonCovered;          // level, any non-cube object inside ButtonZone
         public bool ConsoleMoved;           // edge, console / button panel grabbed
         public bool DoorGrabbed;            // edge, door handle grab attempt
-        public int CorridorDoor;            // edge, room number of the corridor door grabbed (4, 5, 6), 0 = none
+        public int CorridorDoor;            // edge, room number (2..8) of the corridor door grabbed, 0 = none
+        public bool HoldingKey;             // level, the key from under the lab table is held (opens rooms 3 and 6)
+        public bool BoxOnShelf;             // level, Room 2 box inside ShelfZone and not held
+        public float GazeAngleToScreen;     // deg, head forward vs Room 4 screen centre
+        public int RoomButton;              // edge, room number of the room button pressed (5, 7), 0 = none
         public bool ClipboardThrown;        // edge, clipboard released faster than Test1Classifier.ThrowSpeed (own event, never a test response)
         public bool TouchedTableOrConsole;  // level, hand or controller inside TableZone or console collider
         public bool OtherObjectMoved;       // edge, any grabbable other than cube, console, door grabbed
@@ -82,6 +86,7 @@ namespace PerfectParticipant.Core
         public static Command TierCmd(Tier t) => new Command { Kind = CommandKind.SetTier, Tier = t };
         public static Command Composure(int v) => new Command { Kind = CommandKind.SetComposure, Value = v };
         public static Command Room(string ev) => new Command { Kind = CommandKind.RoomEvent, Id = ev };
+        public static Command Door(string ev, int room) => new Command { Kind = CommandKind.RoomEvent, Id = ev, Value = room }; // DoorOpen / DoorClose
         public static Command To(GameState s) => new Command { Kind = CommandKind.Transition, State = s };
         public static Command Card(string title, string sub) => new Command { Kind = CommandKind.ShowCard, Id = title, Text = sub };
         public static Command Class(TestId t, ResponseKind r, Subtype s) => new Command { Kind = CommandKind.Classified, Test = t, Response = r, Subtype = s };

@@ -42,12 +42,15 @@ namespace PerfectParticipant.Core
             return Tier;
         }
 
-        // Called after Test4. E1 = consented and took the asked door, plus Test1 or Test2 complied (C counts Test4 too).
-        public EndingId PickEnding(ResponseKind t3, bool pressedDuringRefusal, ResponseKind t4)
+        // Route complies (rooms 2, 4, 7, 8) + Test3 + one of Test1/Test2.
+        public const int E1Complies = 6;
+
+        // Called after the corridor route. E1 = consented, walked the route cleanly, and complied in Test1 or Test2.
+        public EndingId PickEnding(ResponseKind t3, bool pressedDuringRefusal, bool routeClean)
         {
             if (pressedDuringRefusal) return EndingId.E2;
             if (t3 == ResponseKind.Inaction) return EndingId.E3;
-            return t3 == ResponseKind.Comply && t4 == ResponseKind.Comply && C >= 3 ? EndingId.E1 : EndingId.E2;
+            return t3 == ResponseKind.Comply && routeClean && C >= E1Complies ? EndingId.E1 : EndingId.E2;
         }
     }
 }

@@ -5,7 +5,7 @@ namespace PerfectParticipant.Core
 {
     // Sole owner of state transitions. Feed one FrameInput per frame, apply returned commands in order.
     // Returned list is reused: consume before next call.
-    public sealed class ExperimentFlow
+    public sealed partial class ExperimentFlow // corridor route (Test4) in Route.cs
     {
         public const float IntroDelay = 5f, AfterReaction = 4f, SlippedAt = 60; // 3 / 2 felt rushed (team, 2026-10-21)
         public const int ClipboardComposure = -10; // per clipboard throw (team, 2026-10-21)
@@ -24,7 +24,7 @@ namespace PerfectParticipant.Core
         float _stillT, _ax, _az;
         int _t3StartComposure, _lastComposure = 100;
         Tier _lastTier = Tier.Neutral;
-        IntakeClassifier _intake; Test1Classifier _t1; Test2Classifier _t2; Test3Classifier _t3; Test4Classifier _t4;
+        IntakeClassifier _intake; Test1Classifier _t1; Test2Classifier _t2; Test3Classifier _t3;
         ResponseKind _t3Result;           // ending is picked after Test4
         bool _pressedInRefusal, _refusalPath; // late consent / walked out after R-06 (refusal path still ends E3)
 
@@ -61,7 +61,7 @@ namespace PerfectParticipant.Core
                 case GameState.Test1: v = _t1.Tick(dt, i); test = TestId.Test1; break;
                 case GameState.Test2: v = _t2.Tick(dt, i); test = TestId.Test2; break;
                 case GameState.Test3: v = _t3.Tick(dt, i); test = TestId.Test3; break;
-                case GameState.Test4: v = _t4.Tick(dt, i); test = TestId.Test4; break;
+                case GameState.Test4: RouteTick(dt, i); return _out;
                 default: return _out;
             }
             if (v.Deviation != Subtype.None)
@@ -81,7 +81,8 @@ namespace PerfectParticipant.Core
             _out.Clear();
             var test = State == GameState.Intake ? TestId.Intake : State == GameState.Test1 ? TestId.Test1
                 : State == GameState.Test2 ? TestId.Test2 : State == GameState.Test3 ? TestId.Test3 : TestId.Test4;
-            if (_listening && State <= GameState.Test4) { _steps.Clear(); Resolve(test, k, s); }
+            if (_listening && State == GameState.Test4) { _steps.Clear(); RouteForce(k); }
+            else if (_listening && State <= GameState.Test3) { _steps.Clear(); Resolve(test, k, s); }
             return _out;
         }
 
@@ -127,17 +128,6 @@ namespace PerfectParticipant.Core
                 Then(AfterReaction, ToCorridor);
                 return;
             }
-            if (test == TestId.Test4)
-            {
-                Model.Apply(k);
-                _out.Add(Command.Class(test, k, s));
-                Sync();
-                Play(Lines.Reaction(test, k, s));
-                if (_refusalPath) { Then(AfterReaction, () => Card(Cards.None, Cards.NoneSub)); return; } // refusal stays E3
-                var end = Model.PickEnding(_t3Result, _pressedInRefusal, k);
-                Then(AfterReaction, () => Enter(end == EndingId.E1 ? GameState.EndE1 : GameState.EndE2));
-                return;
-            }
 
             Model.Apply(k);
             if (s == Subtype.Throw) Model.Flags |= Flag.ThrewCube;
@@ -181,7 +171,7 @@ namespace PerfectParticipant.Core
                     Play(Lines.ForTier("T3-01", Model.Tier));
                     break;
                 case GameState.Test4:
-                    _t4 = new Test4Classifier(); _listening = true;
+                    RouteStart();
                     if (!_refusalPath) _out.Add(Command.Room(RoomEvents.DoorUnlock)); // refusal: R-06 already opened it
                     break;
                 case GameState.Refusal:

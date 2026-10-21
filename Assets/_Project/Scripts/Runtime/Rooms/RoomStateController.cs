@@ -59,6 +59,11 @@ namespace PerfectParticipant
         class Led { public Material m; public Color cur, tgt; }
         readonly Dictionary<string, Led> leds = new Dictionary<string, Led>();
 
+        // corridor room doors: Leaf_n pivots at the hinge, swing into the room
+        class CDoor { public Transform leaf; public float angle, target; }
+        readonly Dictionary<int, CDoor> cdoors = new Dictionary<int, CDoor>();
+        const float CDoorOpen = 90f, CDoorSpeed = 120f; // deg, deg/s
+
         // misc props
         Transform clipboard, cube, form, window, grille, camT;
         Vector3 clipPos, cubePos, voiceLocal;
@@ -113,6 +118,11 @@ namespace PerfectParticipant
             window = RoomUtil.Named("ObservationWindow");
             grille = RoomUtil.Named("SpeakerGrille");
             camT = RoomUtil.Named("CeilingCamera");
+            for (int n = CorridorLayout.First; n <= CorridorLayout.Last; n++)
+            {
+                var l = RoomUtil.Named("Leaf_" + n);
+                if (l) cdoors[n] = new CDoor { leaf = l };
+            }
 
             foreach (var r in FindObjectsByType<Renderer>(FindObjectsInactive.Include, FindObjectsSortMode.None))
                 if (r.name.StartsWith("LED_")) AddLed(r.name, r);
@@ -172,7 +182,14 @@ namespace PerfectParticipant
                 case CommandKind.SetTier: tier = c.Tier; ApplyProps(); break;
                 case CommandKind.SetComposure: composure = c.Value; break;
                 case CommandKind.Transition: Trans(c.State); break;
-                case CommandKind.RoomEvent: Evt(c.Id); break;
+                case CommandKind.RoomEvent:
+                    if ((c.Id == RoomEvents.DoorOpen || c.Id == RoomEvents.DoorClose) && cdoors.TryGetValue(c.Value, out var cd))
+                    {
+                        cd.target = c.Id == RoomEvents.DoorOpen ? CDoorOpen : 0f;
+                        Beep(PlaceholderAudio.Thump(c.Id == RoomEvents.DoorOpen ? 80f : 55f, 0.5f), cd.leaf.position, 1f); // shut = deeper
+                    }
+                    else Evt(c.Id);
+                    break;
                 case CommandKind.Classified:
                     if (c.Test == TestId.Test1 && c.Response == ResponseKind.Comply) SetLed("LED_Tray", Green);
                     break;
@@ -394,6 +411,13 @@ namespace PerfectParticipant
             }
 
             if (tetherLine && tetherLine.enabled) { tetherLine.SetPosition(0, TetherAnchor); tetherLine.SetPosition(1, cube.position); }
+
+            foreach (var cd in cdoors.Values)
+                if (cd.angle != cd.target)
+                {
+                    cd.angle = Mathf.MoveTowards(cd.angle, cd.target, CDoorSpeed * dt);
+                    cd.leaf.localRotation = Quaternion.Euler(0f, cd.angle, 0f);
+                }
 
             UpdateObservers(dt);
         }

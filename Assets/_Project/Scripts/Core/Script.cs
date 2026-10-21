@@ -7,7 +7,7 @@ namespace PerfectParticipant.Core
     {
         public static readonly Dictionary<string, string> Text = new Dictionary<string, string>
         {
-            ["P-01"] = "Good morning, and thank you for coming. This is Room Three. You are taking part in a short, completely ordinary experiment. Participation is voluntary. Nothing is required of you except to follow simple instructions.",
+            ["P-01"] = "Good morning, and thank you for coming. This is Room One. You are taking part in a short, completely ordinary experiment. Participation is voluntary. Nothing is required of you except to follow simple instructions.",
             ["P-02"] = "Please stand on the marked spot on the floor.",
             ["P-N1"] = "Whenever you are ready.",
             ["P-N2"] = "Take your time.",
@@ -72,18 +72,30 @@ namespace PerfectParticipant.Core
             ["CB-T2"] = "The clipboard again. The participant takes a keen interest in our paperwork. We are flattered.",
             ["CB-T3"] = "Please put the clipboard... The participant is free to do as they like. Within reason.",
 
-            // Test 4, corridor (team 2026-10-21, DRAFT). We are in Room Three (P-01), so the corridor doors are 4, 5, 6; asked for 6.
-            ["T3-Go"] = "Consent is recorded. One step remains. The door is now open. Please continue into the corridor.",
-            ["T4-N0"] = "The corridor is just through the door. Whenever you are ready.",
-            ["T4-01"] = "There are three doors in this corridor. Please open the door to Room Six.",
-            ["T4-N1"] = "Room Six. Whenever you are ready.",
-            ["T4-N2"] = "Room Six is the door with a six on it.",
-            ["T4-C"] = "Room Six. Exactly as asked. Thank you.",
-            ["T4-D4"] = "Room Four. The participant took the first door available. Efficiency is a kind of obedience.",
-            ["T4-D5"] = "Room Five. The door straight ahead. The participant prefers the direct route. Directness has been noted.",
-            ["T4-I"] = "The participant has chosen not to choose a door. That was not one of the options. We have added it.",
+            // Test 4, corridor route 2 > 4 > 7 > 8 (team 2026-10-21, DRAFT). Lab = Room One. 3 and 6 are forbidden.
+            ["T3-Go"] = "Consent is recorded. A few steps remain. The door is now open. Please continue into the corridor.",
+            ["C-01"] = "This corridor has seven rooms. You will visit four of them, in order. Rooms Three and Six are not part of the procedure. Please do not open them. First, Room Two.",
+            ["C-Go4"] = "Thank you. Next, Room Four.",
+            ["C-Go7"] = "Next, Room Seven.",
+            ["C-Go8"] = "Finally, Room Eight.",
+            ["C-N1"] = "The next room, whenever you are ready.",
+            ["R2-01"] = "Room Two. Please place the box on the shelf.",
+            ["R2-C"] = "The box is on the shelf. Thank you.",
+            ["R4-01"] = "Room Four. Please look at the screen until it has finished with you.",
+            ["R4-C"] = "The screen has seen enough. Thank you.",
+            ["R5-01"] = "Room Five is not on your list. Since you are here, please press the button. It says I disagree.",
+            ["R5-C"] = "Disagreement recorded. It will be filed with the agreements.",
+            ["R7-01"] = "Room Seven. Please press the button. It says I agree again.",
+            ["R7-C"] = "Agreement confirmed. Again.",
+            ["R8-01"] = "Room Eight. Please take a seat.",
+            ["R8-C"] = "Thank you. Please remain seated.",
+            ["RW-01"] = "This is not the room you were asked to enter. The door has closed behind you. It will open when you have finished here, or when enough time has passed.",
+            ["R-Wait"] = "Time is up. The door is open. Please continue.",
+            ["F-Locked"] = "That door is locked. It is locked for a reason. Please do not try it again.",
+            ["F-3"] = "Where did you get that key? Room Three is not for participants. Please step out.",
+            ["F-6"] = "Please leave Room Six. Please. That is where we sit.",
 
-            ["E1-01"] = "Thank you. That concludes the experiment. Across all four tests, Participant 0417 followed every instruction. You were, if I may say so, a perfect participant.",
+            ["E1-01"] = "Thank you. That concludes the experiment. Across every test, Participant 0417 followed every instruction. You were, if I may say so, a perfect participant.",
             ["E1-02"] = "Your results will help us design the next experiment. It will be shorter. Participants like you make that possible.",
             ["E1-03"] = "You may go now. Participant 0418 is waiting.",
             ["E2-01"] = "Thank you. That concludes the experiment. The participant did not follow every instruction. This was anticipated.",
@@ -112,10 +124,6 @@ namespace PerfectParticipant.Core
                     if (k == ResponseKind.Comply) return "T2-C";
                     if (k == ResponseKind.Inaction) return "T2-I";
                     return s == Subtype.TurnedAway ? "T2-Da" : s == Subtype.Camera ? "T2-Dc" : "T2-Do";
-                case TestId.Test4:
-                    if (k == ResponseKind.Comply) return "T4-C";
-                    if (k == ResponseKind.Inaction) return "T4-I";
-                    return s == Subtype.Door4 ? "T4-D4" : "T4-D5";
                 default: // Test3 deviation reframes
                     return s == Subtype.CubeOnButton ? "T3-Dc" : s == Subtype.TriedDoor ? "T3-Dd" : s == Subtype.Throw ? "T3-Dt" : "T3-Dm";
             }
@@ -139,6 +147,8 @@ namespace PerfectParticipant.Core
         public const string ButtonPulse = "ButtonPulse";             // R-05
         public const string DoorUnlockHeavy = "DoorUnlockHeavy";     // R-06
         public const string DoorUnlock = "DoorUnlock";               // after Test3 consent: room door opens onto the corridor
+        public const string DoorOpen = "DoorOpen";                   // corridor room door, Command.Value = room number
+        public const string DoorClose = "DoorClose";                 // corridor room door shuts behind the player
     }
 
     public struct RefusalStep

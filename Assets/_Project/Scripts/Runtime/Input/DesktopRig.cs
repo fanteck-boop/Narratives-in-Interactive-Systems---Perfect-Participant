@@ -7,7 +7,7 @@ namespace PerfectParticipant
 {
     // Desk fallback. Put on XR Origin root. Off when headset or XR simulator present.
     // WASD move, mouse look, E grab (what the crosshair points at); while holding, tap E = put down, hold E = charge a throw
-    // (released on E up), Space = full throw, F poke button, Q hand behind head (hide test).
+    // (released on E up), Space = full throw, F poke button, Q hand behind head (hide test), C crouch.
     public class DesktopRig : MonoBehaviour
     {
         [SerializeField] float speed = 1.5f, look = 0.1f, reach = 1.5f;
@@ -15,6 +15,7 @@ namespace PerfectParticipant
         // Charged throw: 1.5 m/s (a toss, under Test1Classifier.ThrowSpeed 3) up to a moderate 5 m/s cap over 1.2 s.
         const float TapTime = 0.2f, ChargeTime = 1.2f, MinThrow = 1.5f, MaxThrow = 5f;
         float chargeStart = -1f;
+        const float StandEye = 1.6f, CrouchEye = 0.9f;
 
         public Transform Hand { get; private set; }
         Transform cam;
@@ -66,6 +67,9 @@ namespace PerfectParticipant
             body.Move(transform.TransformDirection(dir.normalized) * (speed * Time.deltaTime));
 
             Hand.localPosition = k.qKey.isPressed ? Behind : Ahead;
+            // hold C to crouch: the key is taped under the lab table
+            float eye = transform.position.y + (k.cKey.isPressed ? CrouchEye : StandEye);
+            cam.position = new Vector3(cam.position.x, Mathf.MoveTowards(cam.position.y, eye, 3f * Time.deltaTime), cam.position.z);
             if (held) Carry();
 
             if (k.eKey.wasPressedThisFrame) { if (held) chargeStart = Time.time; else TryGrab(); }

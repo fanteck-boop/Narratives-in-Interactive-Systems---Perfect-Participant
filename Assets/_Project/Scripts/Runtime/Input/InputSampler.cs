@@ -21,7 +21,10 @@ namespace PerfectParticipant
         Collider[] consoleCols;
         bool bPress, bConsole, bDoor, bOther, bRel, bClipThrow;
         float relSpeed, offTime;
-        int corridorDoor;
+        int corridorDoor, roomButton;
+        Transform screen4, box2;
+        Zone shelf2;
+        GrabTracker key;
         bool pInTray, pWin, pCam, pAway, pMark;
         readonly Vector3[] rest = new Vector3[2];
         readonly bool[] hasRest = new bool[2];
@@ -48,7 +51,8 @@ namespace PerfectParticipant
                 case GrabKind.Console: bConsole = true; Raise(PlayerEventType.ConsoleMoved, g.name); break;
                 case GrabKind.Door: bDoor = true; Raise(PlayerEventType.DoorGrabbed, g.name); break;
                 case GrabKind.CorridorDoor: corridorDoor = g.number; Raise(PlayerEventType.DoorGrabbed, g.name); break;
-                case GrabKind.Clipboard: Raise(PlayerEventType.ObjectMoved, g.name); break; // logged only: picking it up is not a test response
+                case GrabKind.Clipboard: case GrabKind.Key: Raise(PlayerEventType.ObjectMoved, g.name); break; // logged only: not a test response
+                case GrabKind.RoomButton: roomButton = g.number; Raise(PlayerEventType.ButtonPressed, g.name); break;
                 default: bOther = true; Raise(PlayerEventType.ObjectMoved, g.name); break;
             }
         }
@@ -88,6 +92,8 @@ namespace PerfectParticipant
             ready = true;
             window = T("ObservationWindow"); ceilingCam = T("CeilingCamera"); form = T("ConsentForm");
             mark = Z("MarkZone"); tray = Z("TrayZone"); table = Z("TableZone"); button = Z("ButtonZone"); Z("DoorZone");
+            shelf2 = Z("ShelfZone"); box2 = T("Box"); screen4 = T("Room4Screen"); // corridor rooms (Test4)
+            foreach (var g in GrabTracker.All) if (g.kind == GrabKind.Key) key = g;
             if (!leftHand) leftHand = T("Left Controller");
             if (!rightHand) rightHand = T("Right Controller");
             var desk = FindFirstObjectByType<DesktopRig>();
@@ -172,8 +178,11 @@ namespace PerfectParticipant
             f.ButtonCovered = button && (button.HasKind(GrabKind.Other) || button.HasKind(GrabKind.Clipboard)); // clipboard over the button still covers it
             f.TouchedTableOrConsole = Touching(leftHand) || Touching(rightHand);
 
-            f.CorridorDoor = corridorDoor; f.ClipboardThrown = bClipThrow;
-            bPress = bConsole = bDoor = bOther = bRel = bClipThrow = false; relSpeed = 0f; corridorDoor = 0;
+            f.CorridorDoor = corridorDoor; f.ClipboardThrown = bClipThrow; f.RoomButton = roomButton;
+            f.HoldingKey = key && key.Held;
+            f.BoxOnShelf = shelf2 && box2 && shelf2.Has(box2) && !(box2.TryGetComponent<GrabTracker>(out var bt) && bt.Held);
+            f.GazeAngleToScreen = head ? Gaze(head, screen4) : 180f;
+            bPress = bConsole = bDoor = bOther = bRel = bClipThrow = false; relSpeed = 0f; corridorDoor = roomButton = 0;
             return f;
         }
     }
