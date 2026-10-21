@@ -13,5 +13,5 @@ MonoBehaviour:
   m_Name: T2-Dc
   m_EditorClassIdentifier: PerfectParticipant.Runtime::PerfectParticipant.DialogueLine
   id: T2-Dc
-  clean: {fileID: 0}
-  slipped: {fileID: 0}
+  clean: {fileID: 8300000, guid: d56beec88a8562f4ca0abb344e9830aa, type: 3}
+  slipped: {fileID: 8300000, guid: a4cdd44a9d4e9594faf325ea5ffd2cee, type: 3}
