@@ -297,20 +297,21 @@ namespace PerfectParticipant.Editor
             T("Text", form, new Vector3(0, 0.001f, 0), new Vector3(90, 0, 0), "<size=140%><b>PARTICIPANT CONSENT</b></size>\n\nI agree to follow the procedure as explained by the facility. I understand the session may be recorded.\n\n<size=60%>Study 3B: Obedience to Procedure</size>", 0.011f, new Vector2(0.19f, 0.27f), Ink, TextAlignmentOptions.TopLeft);
         }
 
+        const float Lift = 0.15f; // playtest: table top 0.75 -> 0.90 m, so a crouching player gets under it to the keycard
         static void TableObj()
         {
             var t = E("Table", null, new Vector3(1.1f, 0, 0)).transform;
             var wood = M("Table", new Color(0.45f, 0.36f, 0.27f), 0.2f);
-            Cb("Top", t, new Vector3(0, 0.725f, 0), new Vector3(0.7f, 0.05f, 1.2f), wood, true);
+            Cb("Top", t, new Vector3(0, 0.725f + Lift, 0), new Vector3(0.7f, 0.05f, 1.2f), wood, true);
             foreach (var sx in new[] { -0.3f, 0.3f }) foreach (var sz in new[] { -0.55f, 0.55f })
-                Cb("Leg", t, new Vector3(sx, 0.35f, sz), new Vector3(0.05f, 0.7f, 0.05f), wood, true);
-            Zone("TableZone", t, new Vector3(0, 0.81f, 0), new Vector3(0.7f, 0.12f, 1.2f));
+                Cb("Leg", t, new Vector3(sx, (0.7f + Lift) * 0.5f, sz), new Vector3(0.05f, 0.7f + Lift, 0.05f), wood, true);
+            Zone("TableZone", t, new Vector3(0, 0.81f + Lift, 0), new Vector3(0.7f, 0.12f, 1.2f));
             // easter egg: staff keycard taped under the top (underside y 0.70); swipe it at the readers of Rooms 3 and 6.
             // Crouch (C) to see it. The two tape strips belong to the table and stay when the card is taken.
             var tape = M("Tape", new Color(0.72f, 0.66f, 0.4f), 0.05f);
             foreach (float tz in new[] { 0.31f, 0.39f })
-                Qd("KeyTape", t, new Vector3(0.05f, 0.6985f, tz), new Vector2(0.11f, 0.018f), tape, new Vector3(-90, 0, 0));
-            var key = Cb("Key", null, new Vector3(1.15f, 0.694f, 0.35f), new Vector3(0.086f, 0.004f, 0.054f), M("Keycard", G(0.92f), 0.4f), true);
+                Qd("KeyTape", t, new Vector3(0.05f, 0.6985f + Lift, tz), new Vector2(0.11f, 0.018f), tape, new Vector3(-90, 0, 0));
+            var key = Cb("Key", null, new Vector3(1.15f, 0.694f + Lift, 0.35f), new Vector3(0.086f, 0.004f, 0.054f), M("Keycard", G(0.92f), 0.4f), true);
             Qd("Stripe", key.transform, new Vector3(0, -0.6f, 0.25f), new Vector2(1f, 0.2f), M("Dark", G(0.05f), 0.05f), new Vector3(-90, 0, 0)); // mag stripe, underside
             T("CardText", key.transform, new Vector3(0, 0.6f, 0), new Vector3(90, 0, 0), "STAFF", 0.25f, new Vector2(0.9f, 0.4f), Ink);
             var krb = key.AddComponent<Rigidbody>(); krb.isKinematic = true; krb.mass = 0.05f; // taped: stays until grabbed, then GrabTracker frees it
@@ -318,13 +319,13 @@ namespace PerfectParticipant.Editor
             key.AddComponent<XRGrabInteractable>().movementType = XRBaseInteractable.MovementType.VelocityTracking;
             key.AddComponent<GrabTracker>().kind = GrabKind.Key;
 
-            var cube = P(PrimitiveType.Cube, "Cube", null, new Vector3(1.0f, 0.79f, -0.1f), Vector3.one * 0.08f, M("Cube", new Color(0.93f, 0.93f, 0.9f), 0.1f), true, new Vector3(0, 17, 0));
+            var cube = P(PrimitiveType.Cube, "Cube", null, new Vector3(1.0f, 0.79f + Lift, -0.1f), Vector3.one * 0.08f, M("Cube", new Color(0.93f, 0.93f, 0.9f), 0.1f), true, new Vector3(0, 17, 0));
             var rb = cube.AddComponent<Rigidbody>();
             rb.mass = 0.2f; rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
             cube.AddComponent<XRGrabInteractable>().movementType = XRBaseInteractable.MovementType.VelocityTracking;
             cube.AddComponent<GrabTracker>().kind = GrabKind.Cube;
 
-            var tray = E("Tray", null, new Vector3(1.15f, 0.76f, 0.15f)).transform;
+            var tray = E("Tray", null, new Vector3(1.15f, 0.76f + Lift, 0.15f)).transform;
             var tm = M("Tray", G(0.35f), 0.3f);
             Cb("Base", tray, Vector3.zero, new Vector3(0.24f, 0.02f, 0.3f), tm, true);
             Cb("RimW", tray, new Vector3(-0.115f, 0.02f, 0), new Vector3(0.01f, 0.03f, 0.3f), tm, true);

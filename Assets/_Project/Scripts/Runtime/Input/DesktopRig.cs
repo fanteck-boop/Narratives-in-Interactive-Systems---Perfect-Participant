@@ -15,7 +15,7 @@ namespace PerfectParticipant
         // Charged throw: 1.5 m/s (a toss, under Test1Classifier.ThrowSpeed 3) up to a moderate 5 m/s cap over 1.2 s.
         const float TapTime = 0.2f, ChargeTime = 1.2f, MinThrow = 1.5f, MaxThrow = 5f;
         float chargeStart = -1f;
-        const float StandEye = 1.6f, CrouchEye = 0.9f;
+        const float StandEye = 1.6f, CrouchEye = 0.5f; // 0.5: under the 0.85 m table underside, where the keycard is
 
         public Transform Hand { get; private set; }
         Transform cam;
