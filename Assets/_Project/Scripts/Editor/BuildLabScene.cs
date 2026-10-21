@@ -372,12 +372,21 @@ namespace PerfectParticipant.Editor
             var c = E("Clipboard", null, new Vector3(-1.92f, 1.575f, 1f), new Vector3(0, 0, 12)).transform;
             Cb("Board", c, Vector3.zero, new Vector3(0.015f, 0.31f, 0.23f), M("Trim", G(0.12f)), true);
             var crb = c.gameObject.AddComponent<Rigidbody>();
-            crb.isKinematic = true; // RoomStateController frees it on R-03
-            c.gameObject.AddComponent<XRGrabInteractable>();
+            crb.isKinematic = true; // RoomStateController frees it on R-03, GrabTracker on release
+            crb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative; // thin board tunnelled through the 0.1 m wall
+            crb.mass = 0.4f;
+            c.gameObject.AddComponent<XRGrabInteractable>().movementType = XRBaseInteractable.MovementType.VelocityTracking; // collides with walls while held
             c.gameObject.AddComponent<GrabTracker>().kind = GrabKind.Other;
             Led("LED_Clipboard", c, new Vector3(0.01f, 0.15f, 0.09f), new Vector3(0.006f, 0.012f, 0.012f));
             var y = new Vector3(0, YawW, 0);
-            Qd("Paper", c, new Vector3(0.0085f, -0.01f, 0), new Vector2(0.2f, 0.27f), M("Paper", G(0.88f), 0.05f), y);
+            // brief: "The line for C is torn off". Sheet ends in a ragged tear through the C line, the board shows below.
+            var paper = M("Paper", G(0.88f), 0.05f);
+            Qd("Paper", c, new Vector3(0.0085f, 0.06f, 0), new Vector2(0.2f, 0.13f), paper, y); // top 0.125 down to the tear at -0.005, just under "C."
+            for (int i = 0; i < 7; i++) // tear: paper diamonds of uneven size hang below the cut edge
+            {
+                float ts = 0.018f + 0.008f * ((i * 5) % 3);
+                Qd("Tear", c, new Vector3(0.0085f, -0.005f - 0.004f * ((i * 3) % 4), -0.09f + 0.03f * i), new Vector2(ts, ts), paper, new Vector3(0, YawW, 45));
+            }
             T("Text", c, new Vector3(0.0095f, -0.01f, 0), y, "Conditions:\nA. Compliance.\nB. Spontaneous Initiative.\nC.", 0.02f, new Vector2(0.19f, 0.26f), Ink, TextAlignmentOptions.TopLeft);
         }
 

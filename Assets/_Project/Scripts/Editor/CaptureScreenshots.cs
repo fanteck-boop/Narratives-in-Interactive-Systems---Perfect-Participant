@@ -21,6 +21,7 @@ namespace PerfectParticipant.Editor
             new Shot("04_console_form", new Vector3(-0.35f, 1.55f, -0.45f), new Vector3(-1.1f, 1.0f, 0.2f)),
             new Shot("05_door_exit", new Vector3(0f, 1.6f, 0.4f), new Vector3(0f, 1.1f, -2f)),
             new Shot("06_observers_in", new Vector3(0f, 1.6f, -0.2f), new Vector3(0f, 1.5f, 2.6f), true),
+            new Shot("07_clipboard", new Vector3(-1.45f, 1.6f, 1.0f), new Vector3(-1.92f, 1.57f, 1.0f)),
         };
 
         [MenuItem("Perfect Participant/Capture Screenshots")]

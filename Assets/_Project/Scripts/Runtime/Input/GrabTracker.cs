@@ -22,10 +22,12 @@ namespace PerfectParticipant
         public bool Held => Holder;
         public Vector3 Velocity { get; private set; }   // smoothed holder velocity
         public Rigidbody Body { get; private set; }
+        public bool Carryable => xri is XRGrabInteractable; // false = simple interactable: grab attempt only
 
         XRBaseInteractable xri;
         Vector3 prev, homePos;
         Quaternion homeRot;
+        bool freeOnRelease;
 
         // enter-play-mode without domain reload keeps statics
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -70,6 +72,7 @@ namespace PerfectParticipant
             if (!Held) return;
             if (speed < 0f) speed = Velocity.magnitude;
             Holder = null; Velocity = default;
+            freeOnRelease = Carryable && Body; // XRI restores the start-kinematic flag on detach: the clipboard would float
             Released?.Invoke(this, speed);
         }
 
@@ -83,7 +86,11 @@ namespace PerfectParticipant
 
         void Update()
         {
-            if (!Held) return;
+            if (!Held)
+            {
+                if (freeOnRelease) { Body.isKinematic = false; freeOnRelease = false; } // one frame later, after XRI's detach
+                return;
+            }
             float dt = Mathf.Max(Time.deltaTime, 1e-4f);
             Vector3 p = Holder.position;
             Velocity = Vector3.Lerp(Velocity, (p - prev) / dt, 1f - Mathf.Exp(-25f * dt));

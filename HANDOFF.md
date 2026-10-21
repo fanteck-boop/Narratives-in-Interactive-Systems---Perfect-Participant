@@ -44,6 +44,7 @@ All packages A to F are written and integrated. Compile clean (zero `error CS`, 
 19. Lighting: Unity colours are gamma values in a linear project, so ambient 0.2 was about 0.03 linear and the room rendered near black. Now ambient 0.45, `RoomLight_Ceiling` intensity 4 (range 7). Glass alpha 0.7 with environment reflections off (the default sky reflection painted a horizon on it). `BoothBack` is mid grey (`M_BoothBack`) and `BoothLight` 2.5 with range 1.6, so the dark silhouettes read against it.
 20. Fade, black-screen text (content note, E3 card) and subtitles are screen UI (`RoomUtil.ScreenLayer`), not head-locked 3D quads. Desktop: Screen Space Overlay. Headset: Screen Space Camera (fade at 0.1 m, text 1 m, subtitles 1.2 m, sort order fade 100 < text 101 < subtitles 102). Headset look is untested.
 21. Lab look without downloaded assets: `Editor/LabTextures.cs` writes three procedural 512 px textures once to `Assets/_Project/Textures/` (0.3 m vinyl floor tiles, 0.6 m drop-ceiling tiles, mottled wall paint; delete a PNG to regenerate). `BuildLabScene.LabDetails()` adds a mint-grey dado to 0.9 m, dark skirting and two emissive ceiling light panels (z +-0.9). Wall albedo 0.8 so the 0.88 paper posters still read. Everything is ours, so no licence line is needed in the DRIS.
+22. Desk play fixes (from the human's first play): DesktopRig uses a CharacterController (walls, table, chair, closed door block; no room clamp, so the open door can be walked through). E grabs what the centre crosshair ray hits within 2.2 m (floor pickups work); simple interactables (console, chair, door handle) are grab attempts only, as in XR. Held objects are not parented: they follow the hand via a sphere cast that stops at walls. Released carryables turn dynamic (GrabTracker, one frame after XRI detach), so the clipboard no longer floats. Clipboard: VelocityTracking, ContinuousSpeculative. Clipboard sheet is torn just under "C." (brief: the line for C is torn off).
 
 ## Known issues
 - Door is at z = -2, about 2 m from the mark: outside the 2 x 2 m play area and the brief's "all interactables within 1.2 m". Decision pending: move the door closer or accept walking.
@@ -52,7 +53,8 @@ All packages A to F are written and integrated. Compile clean (zero `error CS`, 
 - Lighting is realtime greybox, not baked (brief plans the bake in week 3). Values tuned from stills only, not in the headset.
 - Seated mode: window anchor not moved, cube/tray carried with table, anchors are guesses, no persistence across scene reload, toggle only meaningful before start, a seated player is assumed centred on Spawn.
 - Interlude line BR-* plays at the end of Test 2, before the Test 3 transition.
-- `HandsIdle` rest pose = first frame; zone seed uses AABB; desktop room clamp +-1.9 m with no collision.
+- `HandsIdle` rest pose = first frame; zone seed uses AABB.
+- Desktop carry keeps the object half its size off surfaces (sphere cast), so a big object (clipboard) stops ~8 cm short of a wall. Quest grabs rely on XRI velocity tracking for wall collisions: untested on device.
 - Remaining `[BuildLab] unwired` logs (CardDisplay.title/sub, InputSampler.head/hands, DialogueManager.voice/subtitle, RoomStateController.hum, TallyWall.wall) are fine: they resolve by name or are created at runtime.
 
 ## Open questions for the human
@@ -140,3 +142,4 @@ Do not add `-quit` with `-runTests`. Passing: exit code 0, `results.xml` shows `
 - 2026-10-20: First desk play by the human: black fade square and its text followed the player as 3D objects. Moved fade, black text and subtitles to screen UI (Decision 20). 95/95.
 - 2026-10-21: Lab dressing: procedural floor/ceiling/wall textures, dado, skirting, light panels (Decision 21). Scene rebuilt, Validate OK, stills recaptured (capture now renders twice; the first render after load blew out emissive materials).
 - 2026-10-21: Week plan dropped, aim at finished product asap. TTS narrator for all 61 lines (122 wavs, `Tools/GenerateTtsVO.ps1`), linked via scene rebuild, Validate OK. Android Build Support is NOT installed in 6000.6.0f1 (no APK possible yet).
+- 2026-10-21: Desk play fixes (Decision 22): player collision, crosshair ray grab, carry stops at walls, clipboard falls when placed, torn C sheet. 95/95, Validate OK, new still 07_clipboard.
