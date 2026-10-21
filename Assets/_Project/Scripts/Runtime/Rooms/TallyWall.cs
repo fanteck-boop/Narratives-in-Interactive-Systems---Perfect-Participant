@@ -37,8 +37,9 @@ namespace PerfectParticipant
 
         void OnDisable() { if (runner) runner.CommandIssued -= On; }
 
-        // ponytail: fixed offsets from chart centre, tune after greybox. Slot negative = label column.
-        Vector3 RowPos(int row, int slot) => origin + new Vector3(-0.15f + 0.07f * slot, 0.2f - 0.2f * row, -0.03f);
+        // Marks start right of the row words (builder labels run x -0.33..about -0.09), 0.06 apart; panel edge is +0.35.
+        // Slot negative = label column (makeLabels only).
+        Vector3 RowPos(int row, int slot) => origin + new Vector3(0.05f + 0.06f * slot, 0.2f - 0.2f * row, -0.03f);
 
         void On(Command c)
         {

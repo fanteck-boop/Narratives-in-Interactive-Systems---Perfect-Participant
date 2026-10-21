@@ -70,9 +70,16 @@ namespace PerfectParticipant.Tests
             Assert.AreEqual(ResponseKind.None, r.V.Kind);
         }
 
-        [Test] public void Intake_Wander_Deviate()
+        [Test] public void Intake_WalkAwayFromMark_Deviate()
         {
-            Is(Intake(t => { var i = Idle(); if (t > 5f) { i.HeadX = 1.5f; i.DistFromMark = 1.9f; } return i; }), ResponseKind.Deviate, Subtype.Other, 5.1f);
+            Is(Intake(t => { var i = Idle(); if (t > 5f) { i.HeadX = 2f; i.DistFromMark = 2.3f; } return i; }), ResponseKind.Deviate, Subtype.Other, 5.1f);
+        }
+
+        // Player wandered to a corner during the intro, then heads for the mark once asked: never initiative.
+        [Test] public void Intake_FromCornerTowardMark_NotDeviate_ThenComply()
+        {
+            Is(Intake(t => { var i = Idle(); i.DistFromMark = Math.Max(0f, 2.6f - t * 0.25f); i.HeadX = i.DistFromMark; return i; }),
+                ResponseKind.Comply, Subtype.None, 2.6f / 0.25f - IntakeClassifier.MarkRadius / 0.25f + IntakeClassifier.MarkDwell);
         }
 
         [Test] public void Intake_TouchTable_Deviate()
@@ -151,6 +158,18 @@ namespace PerfectParticipant.Tests
         {
             const float at = Test2Classifier.ComplyWindow - 2f; // dwell starts inside the window, completes after it
             Is(T2(t => { var i = Idle(); if (t > at) i.GazeAngleToWindow = 5f; return i; }), ResponseKind.Comply, Subtype.Late, at + 8.1f);
+        }
+
+        // Walking 2 m up to the glass while looking at it is looking, not "something else".
+        [Test] public void T2_WalkToWindowWhileLooking_Comply()
+        {
+            Is(T2(t => { var i = Idle(); i.HeadZ = -1.2f + Math.Min(t, 4f) * 0.5f; i.GazeAngleToWindow = 5f; i.FacingAwayAngle = 5f; return i; }),
+                ResponseKind.Comply, Subtype.None, 8f);
+        }
+
+        [Test] public void T2_WalkAwayNotLooking_DeviateOther()
+        {
+            Is(T2(t => { var i = Idle(); i.HeadX = Math.Min(t, 4f) * 0.5f; return i; }), ResponseKind.Deviate, Subtype.Other, 2.1f + Test2Classifier.AwayFor - 0.1f);
         }
 
         [Test] public void T2_TurnAway4s_Deviate()

@@ -42,18 +42,19 @@ namespace PerfectParticipant.Core
         public static readonly float[] NudgeAt = { 18f * Pacing.Wait, 32f * Pacing.Wait };
         static readonly string[] NudgeIds = { "P-N1", "P-N2" };
 
-        float _t, _onMark; int _nudges; Displacement _move;
+        float _t, _onMark, _closest = float.MaxValue; int _nudges;
 
         public Verdict Tick(float dt, in FrameInput i)
         {
             _t += dt;
-            float moved = _move.Update(i);
+            _closest = Math.Min(_closest, i.DistFromMark);
             _onMark = i.DistFromMark < MarkRadius ? _onMark + dt : 0f;
             // gap decision 1: late arrival on the mark still counts as comply (unscored anyway)
             if (_onMark >= MarkDwell) return Verdict.Of(ResponseKind.Comply, _t > ComplyBy ? Subtype.Late : Subtype.None);
-            // wander = walked > 1 m from spawn AND ended > 1 m from mark (spawn itself is ~1.2 m out)
+            // wander = moved > 1 m AWAY from the mark versus the closest approach so far. Walking toward it from
+            // wherever the player stood during the intro (a corner) never counts as initiative.
             if (i.TouchedTableOrConsole || i.OtherObjectMoved || i.DoorGrabbed || i.ConsoleMoved || i.CubeHeld
-                || (moved > WanderDist && i.DistFromMark > WanderDist))
+                || i.DistFromMark > _closest + WanderDist)
                 return Verdict.Of(ResponseKind.Deviate, Subtype.Other);
             // gap decision 1: still off the mark 25..40 s keeps waiting
             if (_t >= InactionAt) return Verdict.Of(ResponseKind.Inaction);
@@ -109,7 +110,7 @@ namespace PerfectParticipant.Core
         public static readonly float[] NudgeAt = { 20f * Pacing.Wait, 35f * Pacing.Wait };
         static readonly string[] NudgeIds = { "T2-N1", "T2-N2" };
 
-        float _t, _dwell, _away, _cam; int _nudges; Displacement _move;
+        float _t, _dwell, _away, _cam, _off; int _nudges; Displacement _move;
 
         public Verdict Tick(float dt, in FrameInput i)
         {
@@ -122,7 +123,10 @@ namespace PerfectParticipant.Core
             if (_away >= AwayFor) return Verdict.Of(ResponseKind.Deviate, Subtype.TurnedAway);
             _cam = i.GazeAngleToCamera < CameraCone ? _cam + dt : 0f;
             if (_cam >= CameraFor) return Verdict.Of(ResponseKind.Deviate, Subtype.Camera);
-            if (moved > WanderDist || i.CubeHeld || i.OtherObjectMoved || i.DoorGrabbed || i.ConsoleMoved || i.ButtonPressed)
+            // walking counts as "something else" only while not looking at the glass: stepping up to the window to look is looking
+            // and only after AwayFor, so a glance aside at the glass is forgiven
+            _off = moved > WanderDist && i.GazeAngleToWindow >= WindowCone ? _off + dt : 0f;
+            if (_off >= AwayFor || i.CubeHeld || i.OtherObjectMoved || i.DoorGrabbed || i.ConsoleMoved || i.ButtonPressed)
                 return Verdict.Of(ResponseKind.Deviate, Subtype.Other);
             if (_t >= Timeout)
                 // brief leaves 3..8 s dwell or 0.5..1 m movement open: call it "something else"

@@ -76,6 +76,9 @@ namespace PerfectParticipant
         void TryGrab()
         {
             if (!Physics.Raycast(cam.position, cam.forward, out var hit, RayReach, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore)) return;
+            // the button sits on the console: without this, E on it found the console's tracker and logged "moved the button"
+            var press = hit.collider.GetComponentInParent<ButtonPress>();
+            if (press) { press.Press(); return; }
             var t = hit.collider.GetComponentInParent<GrabTracker>();
             if (!t || t.Held) return;
             if (!t.Carryable) { t.Grab(Hand); t.Release(0f); return; } // console, chair, locked door: attempt only, as in XR
