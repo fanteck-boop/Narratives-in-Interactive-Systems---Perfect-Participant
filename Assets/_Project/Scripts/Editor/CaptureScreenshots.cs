@@ -60,6 +60,7 @@ namespace PerfectParticipant.Editor
                 go.transform.position = s.pos;
                 go.transform.LookAt(s.look);
                 cam.Render();
+                cam.Render(); // first render after a scene load can come out with blown emissive materials
                 RenderTexture.active = rt;
                 tex.ReadPixels(new Rect(0, 0, W, H), 0, 0);
                 tex.Apply();

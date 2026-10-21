@@ -44,7 +44,7 @@ namespace PerfectParticipant.Editor
             RenderSettings.ambientMode = AmbientMode.Flat;
             RenderSettings.ambientLight = new Color(0.45f, 0.44f, 0.42f); // gamma value; 0.2 is ~0.03 linear and rendered near black
 
-            Shell(); Window(); Tally(); Cork(); ConsoleObj(); TableObj(); DoorObj(); Shelf(); ChairObj();
+            Shell(); LabDetails(); Window(); Tally(); Cork(); ConsoleObj(); TableObj(); DoorObj(); Shelf(); ChairObj();
             CeilingProps(); Tape(); Lights(); Rig(); Systems();
             AutoWire();
             var tso = new SerializedObject(Object.FindFirstObjectByType<TallyWall>()); // chart already has row labels
@@ -97,6 +97,14 @@ namespace PerfectParticipant.Editor
         }
 
         static Color G(float v) => new Color(v, v, v);
+
+        // Cube faces map UV 0..1, so tiling = face size / texture span.
+        static void Tex(Material m, Texture2D t, float faceMetres)
+        {
+            m.SetTexture("_BaseMap", t);
+            m.SetTextureScale("_BaseMap", Vector2.one * (faceMetres / LabTextures.Span));
+            EditorUtility.SetDirty(m);
+        }
 
         static GameObject E(string n, Transform parent, Vector3 pos, Vector3 rot = default)
         {
@@ -151,7 +159,8 @@ namespace PerfectParticipant.Editor
         static void Shell()
         {
             var room = E("Room", null, Vector3.zero).transform;
-            var wall = M("Wall", G(0.62f)); var floor = M("Floor", G(0.26f), 0.3f); var ceil = M("Ceiling", G(0.72f));
+            var wall = M("Wall", new Color(0.8f, 0.8f, 0.77f)); var floor = M("Floor", G(1f), 0.3f); var ceil = M("Ceiling", G(1f)); // wall below paper (0.88) so posters read
+            Tex(floor, LabTextures.Floor(), 4.2f); Tex(ceil, LabTextures.Ceiling(), 4.2f); Tex(wall, LabTextures.Wall(), 2.4f);
             void W(string n, Vector3 p, Vector3 s, Material m) => Static(Cb(n, room, p, s, m, true));
             W("Floor", new Vector3(0, -0.05f, 0), new Vector3(4.2f, 0.1f, 4.2f), floor);
             W("Ceiling", new Vector3(0, 2.65f, 0), new Vector3(4.2f, 0.1f, 4.2f), ceil);
@@ -181,6 +190,30 @@ namespace PerfectParticipant.Editor
                 P(PrimitiveType.Capsule, $"Silhouette_0{i + 1}", booth, new Vector3(sx[i], sh[i], 2.6f), new Vector3(0.5f, sh[i], 0.35f), sil).SetActive(false);
         }
 
+        // Institutional lab finish: mint-grey dado to 0.9 m, dark rubber skirting, two recessed light panels.
+        static void LabDetails()
+        {
+            var d = E("LabDetails", null, Vector3.zero).transform;
+            var band = M("WallBand", new Color(0.66f, 0.76f, 0.72f), 0.25f);
+            var skirt = M("Skirting", G(0.12f), 0.35f);
+            const float off = 0.003f; // in front of the 2.0 m inner wall faces, behind the dents (1.992)
+            void Run(string n, Vector3 c, float w, float yaw)
+            {
+                var r = Quaternion.Euler(0, yaw, 0);
+                Static(Qd(n + "_Band", d, c + Vector3.up * 0.45f, new Vector2(w, 0.9f), band, new Vector3(0, yaw, 0)));
+                Static(Cb(n + "_Skirt", d, c + Vector3.up * 0.05f + r * Vector3.back * 0.01f, new Vector3(w, 0.1f, 0.02f), skirt, false, new Vector3(0, yaw, 0)));
+            }
+            Run("North", new Vector3(0, 0, 2f - off), 4f, YawN);
+            Run("West", new Vector3(-2f + off, 0, 0), 4f, YawW);
+            Run("East", new Vector3(2f - off, 0, 0), 4f, YawE);
+            Run("SouthL", new Vector3(-1.265f, 0, -2f + off), 1.47f, YawS); // door frame outer edge at x +-0.53
+            Run("SouthR", new Vector3(1.265f, 0, -2f + off), 1.47f, YawS);
+
+            var panel = M("LightPanel", G(0.9f), 0.1f, new Color(1f, 0.96f, 0.9f) * 1.6f);
+            foreach (float z in new[] { -0.9f, 0.9f })
+                Static(Cb("LightPanel", d, new Vector3(0, 2.594f, z), new Vector3(1.2f, 0.012f, 0.6f), panel));
+        }
+
         static void Window()
         {
             var w = E("ObservationWindow", null, new Vector3(0, 1.5f, 2f)).transform;
@@ -194,7 +227,7 @@ namespace PerfectParticipant.Editor
             Cb("WindowBlinds", w, new Vector3(0, 0, -0.045f), new Vector3(1.5f, 1.2f, 0.01f), M("Blind", G(0.45f))); // RoomStateController raises it
             // dents at cube height, previous participants threw it
             var d = M("Dent", G(0.38f));
-            for (int i = 0; i < 3; i++) Qd($"Dent_{i + 1}", null, new Vector3(-0.4f + 0.35f * i, 0.8f + 0.02f * i, 1.995f), new Vector2(0.07f, 0.07f), d, new Vector3(0, 0, 20 * i));
+            for (int i = 0; i < 3; i++) Qd($"Dent_{i + 1}", null, new Vector3(-0.4f + 0.35f * i, 0.8f + 0.02f * i, 1.992f), new Vector2(0.07f, 0.07f), d, new Vector3(0, 0, 20 * i));
         }
 
         static void Tally()
