@@ -363,41 +363,43 @@ namespace PerfectParticipant.Editor
 
         }
 
-        // Corridor behind the lab door (Test 4 route) and Rooms 2..8 off its south wall. Layout numbers live in Core's
-        // CorridorLayout, so the flow and the scene agree. The lab is Room One (P-01). Route 2 > 4 > 7 > 8; 3 and 6 locked.
+        // Corridor straight on from the lab door (-Z) with Rooms 2..8 on both sides. Layout numbers live in Core's
+        // CorridorLayout, so the flow and the scene agree. Lab = Room One (P-01). Route 2 > 4 > 7 > 8; 3 and 6 locked.
         static void Corridor()
         {
             var c = E("Corridor", null, Vector3.zero).transform;
             var wall = M("Wall", new Color(0.8f, 0.8f, 0.77f));
-            float L = CorridorLayout.HalfLength, cz = (CorridorLayout.LabDoorZ - 0.1f + CorridorLayout.BackZ) * 0.5f;
-            float cd = CorridorLayout.LabDoorZ - 0.1f - CorridorLayout.BackZ; // corridor depth: lab outer face -2.1 to -3.6 = 1.5 m
-            var floor = M("CorridorFloor", G(1f), 0.3f); Tex(floor, LabTextures.Floor(), 2f * L, cd);
-            var ceil = M("CorridorCeiling", G(1f)); Tex(ceil, LabTextures.Ceiling(), 2f * L, cd);
+            float h = CorridorLayout.CorridorHalf, w = CorridorLayout.Wall, z0 = CorridorLayout.LabDoorZ - w, z1 = CorridorLayout.EndZ;
+            float len = z0 - z1, cz = (z0 + z1) * 0.5f;
+            var floor = M("CorridorFloor", G(1f), 0.3f); Tex(floor, LabTextures.Floor(), 2f * h, len);
+            var ceil = M("CorridorCeiling", G(1f)); Tex(ceil, LabTextures.Ceiling(), 2f * h, len);
             void W(string n, Vector3 p, Vector3 s, Material m) => Static(Cb(n, c, p, s, m, true));
-            W("CorridorFloor", new Vector3(0, -0.05f, cz), new Vector3(2f * L + 0.2f, 0.1f, cd), floor);
-            W("CorridorCeiling", new Vector3(0, 2.65f, cz), new Vector3(2f * L + 0.2f, 0.1f, cd), ceil);
-            W("CorridorWest", new Vector3(-L - 0.05f, 1.3f, cz), new Vector3(0.1f, 2.6f, cd), wall);
-            W("CorridorEast", new Vector3(L + 0.05f, 1.3f, cz), new Vector3(0.1f, 2.6f, cd), wall);
-            float nw = L - 2.1f; // north wall past the lab's own south wall (lab outer x +-2.1)
-            W("CorridorNorthW", new Vector3(-2.1f - nw * 0.5f, 1.3f, -2.05f), new Vector3(nw, 2.6f, 0.1f), wall);
-            W("CorridorNorthE", new Vector3(2.1f + nw * 0.5f, 1.3f, -2.05f), new Vector3(nw, 2.6f, 0.1f), wall);
+            W("CorridorFloor", new Vector3(0, -0.05f, cz), new Vector3(2f * h, 0.1f, len), floor);
+            W("CorridorCeiling", new Vector3(0, 2.65f, cz), new Vector3(2f * h, 0.1f, len), ceil);
+            W("CorridorEnd", new Vector3(0, 1.3f, z1 - w * 0.5f), new Vector3(2f * h + 2f * w, 2.6f, w), wall);
 
-            // south wall: lintel over the doorways, piers between them
-            float bz = CorridorLayout.BackZ - 0.05f;
-            W("CorridorLintel", new Vector3(0, 2.35f, bz), new Vector3(2f * L, 0.5f, 0.1f), wall);
-            float left = -L;
-            for (int n = CorridorLayout.First; n <= CorridorLayout.Last + 1; n++)
+            // side walls: lintel over the doorways, wall pieces between them
+            foreach (int side in new[] { -1, 1 })
             {
-                float right = n <= CorridorLayout.Last ? CorridorLayout.DoorX(n) - 0.45f : L;
-                W("CorridorPier", new Vector3((left + right) * 0.5f, 1.05f, bz), new Vector3(right - left, 2.1f, 0.1f), wall);
-                if (n <= CorridorLayout.Last) left = CorridorLayout.DoorX(n) + 0.45f;
+                float x = side * (h + w * 0.5f);
+                W("CorridorLintel", new Vector3(x, 2.35f, cz), new Vector3(w, 0.5f, len), wall);
+                float top = z0;
+                for (int n = side < 0 ? 2 : 3; n <= CorridorLayout.Last + 2; n += 2)
+                {
+                    bool door = n <= CorridorLayout.Last;
+                    float bottom = door ? CorridorLayout.DoorZ(n) + 0.45f : z1;
+                    W("CorridorPier", new Vector3(x, 1.05f, (top + bottom) * 0.5f), new Vector3(w, 2.1f, top - bottom), wall);
+                    if (!door) break;
+                    top = CorridorLayout.DoorZ(n) - 0.45f;
+                }
             }
 
             var panel = M("LightPanel", G(0.9f), 0.1f, new Color(1f, 0.96f, 0.9f) * 1.6f);
-            foreach (float x in new[] { -4f, -1.35f, 1.35f, 4f })
+            for (int k = 0; k < CorridorLayout.Slots; k++)
             {
-                Static(Cb("LightPanel", c, new Vector3(x, 2.594f, cz), new Vector3(1.2f, 0.012f, 0.6f), panel));
-                CLight(c, new Vector3(x, 2.4f, cz), 4f, 3f);
+                float z = CorridorLayout.FirstDoorZ - CorridorLayout.SlotLen * k;
+                Static(Cb("LightPanel", c, new Vector3(0, 2.594f, z), new Vector3(0.6f, 0.012f, 1.2f), panel));
+                CLight(c, new Vector3(0, 2.4f, z), 4f, 3f);
             }
 
             // Room One sign beside the lab door, corridor side (viewer faces +Z: right is +X)
@@ -405,7 +407,7 @@ namespace PerfectParticipant.Editor
             Qd("RoomSign_1", c, new Vector3(0.78f, 1.5f, -2.104f), new Vector2(0.34f, 0.12f), paper);
             T("RoomSignText_1", c, new Vector3(0.78f, 1.5f, -2.106f), Vector3.zero, "ROOM 1", 0.06f, new Vector2(0.32f, 0.1f), Ink);
 
-            Rooms(c, wall, floor, ceil);
+            Rooms(c, wall);
             for (int n = CorridorLayout.First; n <= CorridorLayout.Last; n++) RoomDoor(c, n, paper);
         }
 
@@ -415,59 +417,70 @@ namespace PerfectParticipant.Editor
             li.type = LightType.Point; li.color = new Color(0.95f, 0.97f, 1f); li.range = range; li.intensity = intensity; li.shadows = LightShadows.None;
         }
 
-        // Numbered door in the south wall. Leaf_n pivots at the hinge (RoomStateController swings it 90 deg into the room).
+        // Yaw that turns local +Z toward the corridor (room interior = local -Z) for a door / item on this side.
+        static float FaceCorridor(int n) => CorridorLayout.Side(n) < 0 ? 90f : -90f;
+
+        // Numbered door in the corridor side wall. Local +Z = corridor. Leaf_n pivots at the hinge
+        // (RoomStateController swings it 90 deg into the room).
         static void RoomDoor(Transform c, int n, Material paper)
         {
             var leafM = M("Door", G(0.4f), 0.2f); var trim = M("Trim", G(0.12f)); var metal = M("Metal", G(0.55f), 0.7f);
-            var s = new Vector3(0, YawS, 0); // faces +Z, toward the player in the corridor
-            var d = E("CorridorDoor_" + n, c, new Vector3(CorridorLayout.DoorX(n), 0, CorridorLayout.BackZ)).transform;
-            Cb("FrameTop", d, new Vector3(0, 2.13f, 0.03f), new Vector3(1.06f, 0.06f, 0.08f), trim);
-            Cb("FrameL", d, new Vector3(-0.5f, 1.05f, 0.03f), new Vector3(0.06f, 2.1f, 0.08f), trim);
-            Cb("FrameR", d, new Vector3(0.5f, 1.05f, 0.03f), new Vector3(0.06f, 2.1f, 0.08f), trim);
-            var pivot = E("Leaf_" + n, d, new Vector3(-0.45f, 0, -0.05f)).transform;
+            var s = new Vector3(0, YawS, 0); // faces local +Z, toward the player in the corridor
+            float x = CorridorLayout.Side(n) * (CorridorLayout.CorridorHalf + CorridorLayout.Wall * 0.5f);
+            var d = E("CorridorDoor_" + n, c, new Vector3(x, 0, CorridorLayout.DoorZ(n)), new Vector3(0, FaceCorridor(n), 0)).transform;
+            Cb("FrameTop", d, new Vector3(0, 2.13f, 0.06f), new Vector3(1.06f, 0.06f, 0.04f), trim);
+            Cb("FrameL", d, new Vector3(-0.5f, 1.05f, 0.06f), new Vector3(0.06f, 2.1f, 0.04f), trim);
+            Cb("FrameR", d, new Vector3(0.5f, 1.05f, 0.06f), new Vector3(0.06f, 2.1f, 0.04f), trim);
+            var pivot = E("Leaf_" + n, d, new Vector3(-0.45f, 0, 0)).transform;
             Cb("Leaf", pivot, new Vector3(0.45f, 1.05f, 0), new Vector3(0.9f, 2.1f, 0.06f), leafM, true);
             Qd("NumberPlate", pivot, new Vector3(0.45f, 1.5f, 0.032f), new Vector2(0.3f, 0.34f), paper, s);
             T("Number", pivot, new Vector3(0.45f, 1.5f, 0.034f), s, n.ToString(), 0.26f, new Vector2(0.28f, 0.32f), Ink);
             P(PrimitiveType.Cylinder, "Grip", pivot, new Vector3(0.78f, 1f, 0.08f), new Vector3(0.03f, 0.08f, 0.03f), metal, true);
-            // room sign to the right of the door, as the player sees it (facing -Z, right is -X), on the pier
-            Qd("RoomSign", d, new Vector3(-0.75f, 1.5f, 0.005f), new Vector2(0.3f, 0.12f), paper, s);
-            T("RoomSignText", d, new Vector3(-0.75f, 1.5f, 0.007f), s, "ROOM " + n, 0.055f, new Vector2(0.28f, 0.1f), Ink);
+            // room sign to the right of the door, as the player sees it (facing local -Z, right is local -X)
+            Qd("RoomSign", d, new Vector3(-0.8f, 1.5f, 0.055f), new Vector2(0.3f, 0.12f), paper, s);
+            T("RoomSignText", d, new Vector3(-0.8f, 1.5f, 0.057f), s, "ROOM " + n, 0.055f, new Vector2(0.28f, 0.1f), Ink);
             if (CorridorLayout.Forbidden(n))
             {
-                Qd("NoEntry", d, new Vector3(-0.75f, 1.32f, 0.005f), new Vector2(0.3f, 0.1f), M("Warning", new Color(0.75f, 0.12f, 0.08f), 0.2f), s);
-                T("NoEntryText", d, new Vector3(-0.75f, 1.32f, 0.007f), s, "STAFF ONLY", 0.045f, new Vector2(0.28f, 0.08f), G(0.95f));
+                Qd("NoEntry", d, new Vector3(-0.8f, 1.32f, 0.055f), new Vector2(0.3f, 0.1f), M("Warning", new Color(0.75f, 0.12f, 0.08f), 0.2f), s);
+                T("NoEntryText", d, new Vector3(-0.8f, 1.32f, 0.057f), s, "STAFF ONLY", 0.045f, new Vector2(0.28f, 0.08f), G(0.95f));
             }
             d.gameObject.AddComponent<XRSimpleInteractable>(); // a grab attempt on leaf or handle = try the door; the flow opens it
             var g = d.gameObject.AddComponent<GrabTracker>();
             g.kind = GrabKind.CorridorDoor; g.number = n;
         }
 
-        // Rooms 2..8: shared side walls, one back wall, a light each, and their props / tasks.
-        static void Rooms(Transform c, Material wall, Material floor, Material ceil)
+        // Rooms 2..8, 3 m along the corridor and 3.5 m deep, one light each, with their props / tasks.
+        // Walls between rooms sit inside each slot, so slot 0 never doubles the lab's south wall (z-fighting).
+        static void Rooms(Transform c, Material wall)
         {
             var r = E("Rooms", c, Vector3.zero).transform;
-            float z0 = CorridorLayout.BackZ - 0.1f, z1 = CorridorLayout.RoomBackZ, rz = (z0 + z1) * 0.5f, rd = z0 - z1;
-            float x0 = CorridorLayout.DoorX(CorridorLayout.First) - CorridorLayout.RoomHalf, x1 = CorridorLayout.DoorX(CorridorLayout.Last) + CorridorLayout.RoomHalf;
-            var rfloor = M("RoomFloor", G(1f), 0.3f); Tex(rfloor, LabTextures.Floor(), x1 - x0, rd);
-            var rceil = M("RoomCeiling", G(1f)); Tex(rceil, LabTextures.Ceiling(), x1 - x0, rd);
+            float h = CorridorLayout.CorridorHalf, w = CorridorLayout.Wall, depth = CorridorLayout.RoomDepth, slot = CorridorLayout.SlotLen;
+            var rfloor = M("RoomFloor", G(1f), 0.3f); Tex(rfloor, LabTextures.Floor(), depth, slot);
+            var rceil = M("RoomCeiling", G(1f)); Tex(rceil, LabTextures.Ceiling(), depth, slot);
             void W(string n, Vector3 p, Vector3 s, Material m) => Static(Cb(n, r, p, s, m, true));
-            W("RoomsFloor", new Vector3((x0 + x1) * 0.5f, -0.05f, rz), new Vector3(x1 - x0, 0.1f, rd), rfloor);
-            W("RoomsCeiling", new Vector3((x0 + x1) * 0.5f, 2.65f, rz), new Vector3(x1 - x0, 0.1f, rd), rceil);
-            W("RoomsBack", new Vector3((x0 + x1) * 0.5f, 1.3f, z1 - 0.05f), new Vector3(x1 - x0 + 0.1f, 2.6f, 0.1f), wall);
-            for (int n = CorridorLayout.First; n <= CorridorLayout.Last + 1; n++)
-                W("RoomSide", new Vector3(CorridorLayout.DoorX(n) - CorridorLayout.RoomHalf, 1.3f, rz), new Vector3(0.1f, 2.6f, rd), wall);
-
             var paper = M("Paper", G(0.88f), 0.05f); var dk = M("Dark", G(0.05f), 0.05f); var wood = M("Table", new Color(0.45f, 0.36f, 0.27f), 0.2f);
+            var chairM = M("Chair", G(0.2f), 0.2f);
+
             for (int n = CorridorLayout.First; n <= CorridorLayout.Last; n++)
             {
-                float x = CorridorLayout.DoorX(n);
-                CLight(r, new Vector3(x, 2.35f, rz), 2.6f, CorridorLayout.Forbidden(n) ? 0.8f : 2.2f); // forbidden rooms dim
+                int side = CorridorLayout.Side(n);
+                float cx = CorridorLayout.CenterX(n), cz = CorridorLayout.DoorZ(n);
+                float back = side * (h + w + depth);              // inner face of the far wall
+                float yaw = FaceCorridor(n);                       // + 180 for items on the far wall that face the door
+                W("RoomFloor_" + n, new Vector3(cx, -0.05f, cz), new Vector3(depth, 0.1f, slot), rfloor);
+                W("RoomCeiling_" + n, new Vector3(cx, 2.65f, cz), new Vector3(depth, 0.1f, slot), rceil);
+                W("RoomBack_" + n, new Vector3(back + side * w * 0.5f, 1.3f, cz), new Vector3(w, 2.6f, slot), wall);
+                W("RoomSideN_" + n, new Vector3(cx, 1.3f, cz + (slot - w) * 0.5f), new Vector3(depth, 2.6f, w), wall);
+                W("RoomSideS_" + n, new Vector3(cx, 1.3f, cz - (slot - w) * 0.5f), new Vector3(depth, 2.6f, w), wall);
+                CLight(r, new Vector3(cx, 2.35f, cz), 3.5f, CorridorLayout.Forbidden(n) ? 0.8f : 2.5f); // forbidden rooms dim
+                Vector3 onBack(float y, float off) => new Vector3(back - side * off, y, cz);
+
                 switch (n)
                 {
-                    case 2: // shelf on the back wall, a box on the floor
-                        Cb("Shelf", r, new Vector3(x, 1.1f, z1 + 0.17f), new Vector3(0.9f, 0.03f, 0.3f), wood, true);
-                        Zone("ShelfZone", r, new Vector3(x, 1.25f, z1 + 0.17f), new Vector3(0.9f, 0.26f, 0.3f));
-                        var box = Cb("Box", null, new Vector3(x - 0.3f, 0.1f, rz + 0.6f), Vector3.one * 0.2f, M("Box", new Color(0.62f, 0.48f, 0.3f), 0.15f), true);
+                    case 2: // shelf on the far wall, a box on the floor near the door
+                        Cb("Shelf", r, onBack(1.1f, 0.17f), new Vector3(0.3f, 0.03f, 1.2f), wood, true);
+                        Zone("ShelfZone", r, onBack(1.25f, 0.17f), new Vector3(0.3f, 0.26f, 1.2f));
+                        var box = Cb("Box", null, new Vector3(cx - side * 0.9f, 0.1f, cz + 0.8f), Vector3.one * 0.2f, M("Box", new Color(0.62f, 0.48f, 0.3f), 0.15f), true);
                         var brb = box.AddComponent<Rigidbody>(); brb.mass = 0.5f; brb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
                         box.AddComponent<XRGrabInteractable>().movementType = XRBaseInteractable.MovementType.VelocityTracking;
                         box.AddComponent<GrabTracker>().kind = GrabKind.Other;
@@ -475,45 +488,45 @@ namespace PerfectParticipant.Editor
                     case 3: // forbidden: shelves of participant files
                         for (int row = 0; row < 3; row++)
                         {
-                            Cb("FileShelf", r, new Vector3(x, 0.5f + 0.6f * row, z1 + 0.2f), new Vector3(1.3f, 0.03f, 0.35f), wood, true);
-                            for (int k = 0; k < 6; k++)
-                                Cb("FileBox", r, new Vector3(x - 0.55f + 0.22f * k, 0.64f + 0.6f * row, z1 + 0.2f), new Vector3(0.18f, 0.25f, 0.3f), paper);
+                            Cb("FileShelf", r, onBack(0.5f + 0.6f * row, 0.2f), new Vector3(0.35f, 0.03f, 2.4f), wood, true);
+                            for (int k = 0; k < 10; k++)
+                                Cb("FileBox", r, onBack(0.64f + 0.6f * row, 0.2f) + new Vector3(0, 0, -1.1f + 0.24f * k), new Vector3(0.3f, 0.25f, 0.18f), paper);
                         }
-                        T("FilesLabel", r, new Vector3(x, 2.1f, z1 + 0.01f), new Vector3(0, YawS, 0), "PARTICIPANTS 0001 - 0416", 0.05f, new Vector2(1.3f, 0.1f), Ink);
+                        T("FilesLabel", r, onBack(2.1f, 0.01f), new Vector3(0, yaw + 180f, 0), "PARTICIPANTS 0001 - 0416", 0.06f, new Vector2(2.4f, 0.12f), Ink);
                         break;
                     case 4: // the screen to look at
-                        var scr = Qd("Room4Screen", null, new Vector3(x, 1.5f, z1 + 0.01f), new Vector2(1.0f, 0.6f), M("Screen", new Color(0.02f, 0.05f, 0.04f), 0.5f, new Color(0.03f, 0.1f, 0.07f)), new Vector3(0, YawS, 0)); // back wall faces +Z
-                        T("ScreenText", scr.transform, new Vector3(0, 0, -0.002f), Vector3.zero, "PARTICIPANT 0417\n<size=60%>PLEASE KEEP LOOKING</size>", 0.08f, new Vector2(0.9f, 0.5f), new Color(0.5f, 1f, 0.7f));
+                        var scr = Qd("Room4Screen", null, onBack(1.5f, 0.01f), new Vector2(1.4f, 0.8f),
+                            M("Screen", new Color(0.02f, 0.05f, 0.04f), 0.5f, new Color(0.03f, 0.1f, 0.07f)), new Vector3(0, yaw + 180f, 0));
+                        T("ScreenText", scr.transform, new Vector3(0, 0, -0.002f), Vector3.zero, "PARTICIPANT 0417\n<size=60%>PLEASE KEEP LOOKING</size>", 0.1f, new Vector2(1.3f, 0.7f), new Color(0.5f, 1f, 0.7f));
                         break;
-                    case 5: RoomButton(r, x, 5, "I DISAGREE"); break;
+                    case 5: RoomButton(r, cx, cz, 5, "I DISAGREE"); break;
                     case 6: // forbidden: where the observers sit, chairs facing a dark pane
-                        Qd("ObserverPane", r, new Vector3(x, 1.5f, z1 + 0.01f), new Vector2(1.2f, 0.9f), dk, new Vector3(0, YawS, 0));
+                        Qd("ObserverPane", r, onBack(1.5f, 0.01f), new Vector2(2f, 1f), dk, new Vector3(0, yaw + 180f, 0));
                         for (int k = 0; k < 3; k++)
                         {
-                            var ch = E("ObserverChair", r, new Vector3(x - 0.45f + 0.45f * k, 0, z1 + 0.9f), new Vector3(0, 180, 0)).transform;
-                            Cb("Seat", ch, new Vector3(0, 0.45f, 0), new Vector3(0.38f, 0.05f, 0.38f), M("Chair", G(0.2f), 0.2f), true);
-                            Cb("Back", ch, new Vector3(0, 0.72f, -0.17f), new Vector3(0.38f, 0.45f, 0.04f), M("Chair", G(0.2f), 0.2f), true);
+                            var ch = E("ObserverChair", r, new Vector3(back - side * 1.1f, 0, cz - 0.7f + 0.7f * k), new Vector3(0, yaw + 180f, 0)).transform;
+                            Cb("Seat", ch, new Vector3(0, 0.45f, 0), new Vector3(0.38f, 0.05f, 0.38f), chairM, true);
+                            Cb("Back", ch, new Vector3(0, 0.72f, -0.17f), new Vector3(0.38f, 0.45f, 0.04f), chairM, true);
                             Qd("ObserverNotes", ch, new Vector3(0, 0.476f, 0), new Vector2(0.18f, 0.24f), paper, new Vector3(90, 0, 0));
                         }
                         break;
-                    case 7: RoomButton(r, x, 7, "I AGREE AGAIN"); break;
-                    case 8: // the last chair: sit (stand in its seat) to finish
-                        var c8 = E("Room8Chair", r, new Vector3(x, 0, CorridorLayout.SeatZ)).transform;
-                        Cb("Seat", c8, new Vector3(0, 0.45f, 0), new Vector3(0.45f, 0.05f, 0.45f), M("Chair", G(0.2f), 0.2f));
-                        Cb("Back", c8, new Vector3(0, 0.75f, -0.21f), new Vector3(0.45f, 0.5f, 0.04f), M("Chair", G(0.2f), 0.2f));
+                    case 7: RoomButton(r, cx, cz, 7, "I AGREE AGAIN"); break;
+                    case 8: // the last chair at the room centre, facing the door: sit (stand in its seat) to finish
+                        var c8 = E("Room8Chair", r, new Vector3(cx, 0, cz), new Vector3(0, yaw, 0)).transform;
+                        Cb("Seat", c8, new Vector3(0, 0.45f, 0), new Vector3(0.45f, 0.05f, 0.45f), chairM);
+                        Cb("Back", c8, new Vector3(0, 0.75f, -0.21f), new Vector3(0.45f, 0.5f, 0.04f), chairM);
                         break;
                 }
             }
         }
 
-        // Pedestal with a labelled cap; a grab attempt on it = RoomButton n (same desk/XR path as the doors).
-        static void RoomButton(Transform r, float x, int n, string label)
+        // Pedestal with a labelled cap at the room centre; a grab attempt on it = RoomButton n (same desk/XR path as the doors).
+        static void RoomButton(Transform r, float x, float z, int n, string label)
         {
-            float z = (CorridorLayout.BackZ + CorridorLayout.RoomBackZ) * 0.5f - 0.3f;
             Cb("Pedestal", r, new Vector3(x, 0.5f, z), new Vector3(0.4f, 1f, 0.4f), M("Console", G(0.3f), 0.25f), true);
             var b = E("RoomButton_" + n, r, new Vector3(x, 1.0f, z)).transform;
             P(PrimitiveType.Cylinder, "Cap", b, new Vector3(0, 0.015f, 0), new Vector3(0.16f, 0.015f, 0.16f), M("ConsentOrange", new Color(1f, 0.42f, 0.05f), 0.55f, Color.black), true);
-            T("Label", b, new Vector3(0, 0.032f, 0), new Vector3(90, 0, 0), label, 0.016f, new Vector2(0.15f, 0.05f), Ink);
+            T("Label", b, new Vector3(0, 0.032f, 0), new Vector3(90, FaceCorridor(n) + 180f, 0), label, 0.016f, new Vector2(0.15f, 0.05f), Ink);
             b.gameObject.AddComponent<XRSimpleInteractable>();
             var g = b.gameObject.AddComponent<GrabTracker>();
             g.kind = GrabKind.RoomButton; g.number = n;

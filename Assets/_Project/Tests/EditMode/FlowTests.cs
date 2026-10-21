@@ -103,17 +103,17 @@ namespace PerfectParticipant.Tests
             return log;
         }
 
-        const float CorridorZ = -2.8f, InRoomZ = -4.8f;
+        const float CorridorZ = -2.8f;
 
-        // Stand at the target's door and try it until it opens, then go in and do its task.
+        // Stand at the target's door and try it until it opens, then go in (room centre = Room 8 seat) and do its task.
         internal static void RouteDriver(ExperimentFlow f, ref FrameInput i)
         {
             int n = f.RouteTarget;
-            i.HeadZ = CorridorZ;
+            i.HeadX = 0f; i.HeadZ = CorridorZ;
             if (n == 0) return;
-            i.HeadX = CorridorLayout.DoorX(n);
+            i.HeadZ = CorridorLayout.DoorZ(n);
             if (f.InRoom != n && !f.IsDoorOpen(n)) { i.CorridorDoor = n; return; } // inside, the door is shut behind us
-            i.HeadZ = n == 8 ? CorridorLayout.SeatZ : InRoomZ;
+            i.HeadX = CorridorLayout.CenterX(n);
             if (n == 2) i.BoxOnShelf = true;
             if (n == 4) i.GazeAngleToScreen = 0f;
             if (n == 7) i.RoomButton = 7;
@@ -275,7 +275,7 @@ namespace PerfectParticipant.Tests
 
         static FrameInput At(int room, bool inside)
         {
-            var i = Idle(); i.HeadX = CorridorLayout.DoorX(room); i.HeadZ = inside ? InRoomZ : CorridorZ;
+            var i = Idle(); i.HeadX = inside ? CorridorLayout.CenterX(room) : 0f; i.HeadZ = CorridorLayout.DoorZ(room);
             return i;
         }
 
@@ -325,6 +325,17 @@ namespace PerfectParticipant.Tests
             CollectionAssert.Contains(LineIds(log).ToList(), "F-3");
             Assert.IsFalse(Has(log, RoomEvents.DoorClose, 3), "forbidden room never traps");
             Assert.IsTrue(log.Any(c => c.Kind == CommandKind.Classified && c.Subtype == Subtype.Forbidden));
+        }
+
+        [Test] public void Layout_RoomAt_SidesAndSlots()
+        {
+            Assert.AreEqual(CorridorLayout.Lab, CorridorLayout.RoomAt(0f, 0f));
+            Assert.AreEqual(0, CorridorLayout.RoomAt(0f, -8f));
+            foreach (var n in new[] { 2, 3, 4, 5, 6, 7, 8 })
+                Assert.AreEqual(n, CorridorLayout.RoomAt(CorridorLayout.CenterX(n), CorridorLayout.DoorZ(n)), "room " + n);
+            Assert.Less(CorridorLayout.CenterX(2), 0f, "even rooms on the right walking in (-X)");
+            Assert.Greater(CorridorLayout.CenterX(7), 0f);
+            Assert.AreEqual(0, CorridorLayout.RoomAt(2.5f, CorridorLayout.DoorZ(8)), "no left room opposite 8");
         }
 
         [Test] public void Route_OutOfOrder_RoomFourFirst_IsDeviate_TargetStaysTwo()

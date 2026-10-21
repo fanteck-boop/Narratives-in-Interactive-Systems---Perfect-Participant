@@ -3,24 +3,33 @@ using System;
 namespace PerfectParticipant.Core
 {
     // Corridor layout, shared by Core (which room is the head in) and the scene builder. Metres, mark at origin.
-    // Lab = Room One (P-01). Rooms 2..8 open off the corridor's south wall, 1.5 m apart, 2.5 m deep.
+    // Lab = Room One (P-01). The corridor runs straight on from the lab door (-Z). Walking in: even rooms
+    // (2, 4, 6, 8) on the right (-X), odd rooms (3, 5, 7) on the left (+X). Rooms 3 m along the corridor, 3.5 m deep.
     public static class CorridorLayout
     {
         public const int Lab = 1, First = 2, Last = 8;
         public static readonly int[] Order = { 2, 4, 7, 8 };          // the route the facility wants
         public static bool Forbidden(int n) => n == 3 || n == 6;      // locked; the key under the lab table opens them
-        public static float DoorX(int n) => -4.5f + 1.5f * (n - First);
-        public const float LabDoorZ = -2f, BackZ = -3.6f, RoomBackZ = -6.1f, RoomHalf = 0.75f, HalfLength = 5.4f;
-        public const float SeatZ = -5.3f, SeatRadius = 0.45f;          // Room 8 chair, at DoorX(8)
+        public const float LabDoorZ = -2f, CorridorHalf = 0.75f, Wall = 0.1f, SlotLen = 3f, RoomDepth = 3.5f, FirstDoorZ = -3.6f;
+        public const int Slots = 4;                                    // right side has 4 rooms, left side 3
+        public const float EndZ = FirstDoorZ - SlotLen * (Slots - 1) - SlotLen * 0.5f; // -14.1
+        public const float SeatRadius = 0.5f;                          // Room 8 chair at the room centre
         public const float ScreenCone = 20f;                           // Room 4 gaze cone
+
+        public static int Side(int n) => n % 2 == 0 ? -1 : 1;          // x sign of the room
+        public static int Slot(int n) => (n - (n % 2 == 0 ? 2 : 3)) / 2;
+        public static float DoorZ(int n) => FirstDoorZ - SlotLen * Slot(n);
+        public static float DoorX(int n) => Side(n) * CorridorHalf;     // the doorway in the corridor side wall
+        public static float CenterX(int n) => Side(n) * (CorridorHalf + Wall + RoomDepth * 0.5f);
 
         // 1 = lab, 0 = corridor (or outside every room), 2..8 = inside that room.
         public static int RoomAt(float x, float z)
         {
             if (z > LabDoorZ) return Lab;
-            if (z > BackZ - 0.15f) return 0;
-            int n = (int)Math.Round((x - DoorX(First)) / 1.5f) + First;
-            return n >= First && n <= Last && Math.Abs(x - DoorX(n)) < RoomHalf ? n : 0;
+            if (Math.Abs(x) <= CorridorHalf + Wall * 0.5f) return 0;
+            int slot = (int)Math.Round((FirstDoorZ - z) / SlotLen);
+            int n = (x < 0f ? 2 : 3) + 2 * slot;
+            return n >= First && n <= Last && Math.Abs(z - DoorZ(n)) <= SlotLen * 0.5f ? n : 0;
         }
 
         public static bool HasTask(int n) => n == 2 || n == 4 || n == 5 || n == 7 || n == 8;
@@ -34,7 +43,7 @@ namespace PerfectParticipant.Core
                 case 2: return i.BoxOnShelf;
                 case 4: return i.GazeAngleToScreen < ScreenCone;
                 case 5: case 7: return i.RoomButton == n;
-                case 8: float dx = i.HeadX - DoorX(8), dz = i.HeadZ - SeatZ; return dx * dx + dz * dz < SeatRadius * SeatRadius;
+                case 8: float dx = i.HeadX - CenterX(8), dz = i.HeadZ - DoorZ(8); return dx * dx + dz * dz < SeatRadius * SeatRadius;
                 default: return false;
             }
         }
