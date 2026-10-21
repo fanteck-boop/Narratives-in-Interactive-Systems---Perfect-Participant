@@ -42,11 +42,12 @@ namespace PerfectParticipant.Core
             return Tier;
         }
 
-        public EndingId PickEnding(ResponseKind t3, bool pressedDuringRefusal)
+        // Called after Test4. E1 = consented and took the asked door, plus Test1 or Test2 complied (C counts Test4 too).
+        public EndingId PickEnding(ResponseKind t3, bool pressedDuringRefusal, ResponseKind t4)
         {
             if (pressedDuringRefusal) return EndingId.E2;
             if (t3 == ResponseKind.Inaction) return EndingId.E3;
-            return t3 == ResponseKind.Comply && C >= 2 ? EndingId.E1 : EndingId.E2;
+            return t3 == ResponseKind.Comply && t4 == ResponseKind.Comply && C >= 3 ? EndingId.E1 : EndingId.E2;
         }
     }
 }

@@ -2,11 +2,12 @@ using System;
 
 namespace PerfectParticipant.Core
 {
-    public enum TestId { Intake, Test1, Test2, Test3 }
+    public enum TestId { Intake, Test1, Test2, Test3, Test4 }
     public enum ResponseKind { None, Comply, Deviate, Inaction }
-    public enum Subtype { None, Late, Hold, Throw, Hide, Other, TurnedAway, Camera, MovedButton, CubeOnButton, TriedDoor }
+    public enum Subtype { None, Late, Hold, Throw, Hide, Other, TurnedAway, Camera, MovedButton, CubeOnButton, TriedDoor, Door4, Door5 }
     public enum Tier { Neutral, Valued, Flagged, Unclassified }
-    public enum GameState { Intake, Test1, Test2, Test3, Refusal, EndE1, EndE2, EndE3 }
+    // Test4 = corridor door choice after Test3 (all paths, team 2026-10-21). Kept before Refusal: Force checks State <= Test4.
+    public enum GameState { Intake, Test1, Test2, Test3, Test4, Refusal, EndE1, EndE2, EndE3 }
     public enum EndingId { None, E1, E2, E3 }
 
     [Flags]
@@ -51,6 +52,7 @@ namespace PerfectParticipant.Core
         public bool ButtonCovered;          // level, any non-cube object inside ButtonZone
         public bool ConsoleMoved;           // edge, console / button panel grabbed
         public bool DoorGrabbed;            // edge, door handle grab attempt
+        public int CorridorDoor;            // edge, room number of the corridor door grabbed (4, 5, 6), 0 = none
         public bool TouchedTableOrConsole;  // level, hand or controller inside TableZone or console collider
         public bool OtherObjectMoved;       // edge, any grabbable other than cube, console, door grabbed
         public bool ReadingForm;            // level, head within 0.5 m of form and facing it

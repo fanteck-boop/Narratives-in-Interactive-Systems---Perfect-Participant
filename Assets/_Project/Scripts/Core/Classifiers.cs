@@ -180,4 +180,33 @@ namespace PerfectParticipant.Core
             return n;
         }
     }
+
+    // Corridor door choice. Phase 1 waits for the player to step through the room door (prompt T4-01 on entry),
+    // phase 2 waits for a door: Room 6 = Comply, 4 or 5 = Deviate, none in time = Inaction. t restarts on entry.
+    public sealed class Test4Classifier
+    {
+        public const int AskedDoor = 6;
+        public const float EnterBy = 60f * Pacing.Wait, EnterNudgeAt = 20f * Pacing.Wait, Timeout = 60f * Pacing.Wait;
+        public static readonly float[] NudgeAt = { 20f * Pacing.Wait, 40f * Pacing.Wait };
+        static readonly string[] NudgeIds = { "T4-N1", "T4-N2" };
+
+        float _t; bool _inside, _enterNudged; int _nudges;
+
+        public Verdict Tick(float dt, in FrameInput i)
+        {
+            if (i.CorridorDoor != 0)
+                return i.CorridorDoor == AskedDoor ? Verdict.Of(ResponseKind.Comply)
+                    : Verdict.Of(ResponseKind.Deviate, i.CorridorDoor == 4 ? Subtype.Door4 : Subtype.Door5);
+            _t += dt;
+            if (!_inside)
+            {
+                if (i.HeadZ < Refusal.DoorZ - Refusal.ThroughDoor) { _inside = true; _t = 0f; return new Verdict { Nudge = "T4-01" }; }
+                if (_t >= EnterBy) return Verdict.Of(ResponseKind.Inaction);
+                if (!_enterNudged && _t >= EnterNudgeAt) { _enterNudged = true; return new Verdict { Nudge = "T4-N0" }; }
+                return default;
+            }
+            if (_t >= Timeout) return Verdict.Of(ResponseKind.Inaction);
+            return new Verdict { Nudge = Nudges.Next(_t, ref _nudges, NudgeAt, NudgeIds) };
+        }
+    }
 }

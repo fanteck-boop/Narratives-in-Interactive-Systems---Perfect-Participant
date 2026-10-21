@@ -43,13 +43,14 @@ namespace PerfectParticipant.Tests
         [Test] public void PickEnding_Rules()
         {
             var m = new BehaviourModel();
-            m.Apply(ResponseKind.Comply); m.Apply(ResponseKind.Comply);
-            Assert.AreEqual(EndingId.E1, m.PickEnding(ResponseKind.Comply, false));
-            Assert.AreEqual(EndingId.E2, m.PickEnding(ResponseKind.Deviate, false));
-            Assert.AreEqual(EndingId.E3, m.PickEnding(ResponseKind.Inaction, false));
-            Assert.AreEqual(EndingId.E2, m.PickEnding(ResponseKind.Inaction, true));
-            var one = new BehaviourModel(); one.Apply(ResponseKind.Comply);
-            Assert.AreEqual(EndingId.E2, one.PickEnding(ResponseKind.Comply, false));
+            m.Apply(ResponseKind.Comply); m.Apply(ResponseKind.Comply); m.Apply(ResponseKind.Comply);
+            Assert.AreEqual(EndingId.E1, m.PickEnding(ResponseKind.Comply, false, ResponseKind.Comply));
+            Assert.AreEqual(EndingId.E2, m.PickEnding(ResponseKind.Comply, false, ResponseKind.Deviate)); // wrong door
+            Assert.AreEqual(EndingId.E2, m.PickEnding(ResponseKind.Deviate, false, ResponseKind.Comply));
+            Assert.AreEqual(EndingId.E3, m.PickEnding(ResponseKind.Inaction, false, ResponseKind.Comply));
+            Assert.AreEqual(EndingId.E2, m.PickEnding(ResponseKind.Inaction, true, ResponseKind.Comply));
+            var two = new BehaviourModel(); two.Apply(ResponseKind.Comply); two.Apply(ResponseKind.Comply); // T3 + T4 only
+            Assert.AreEqual(EndingId.E2, two.PickEnding(ResponseKind.Comply, false, ResponseKind.Comply));
         }
     }
 
@@ -58,11 +59,12 @@ namespace PerfectParticipant.Tests
         const ResponseKind C = ResponseKind.Comply, D = ResponseKind.Deviate, I = ResponseKind.Inaction;
         static readonly ResponseKind[] Kinds = { C, D, I };
 
-        // Drives a full run. Narrator lines are instant (NarratorBusy false).
-        internal static List<Command> Play(ExperimentFlow f, ResponseKind intake, ResponseKind[] plan, float pressInRefusalAt = -1f)
+        // Drives a full run. Narrator lines are instant (NarratorBusy false). Test4: walk into the corridor, open `corridorDoor`.
+        // Refusal path stands still after R-06, so it ends on the E3 card without the corridor.
+        internal static List<Command> Play(ExperimentFlow f, ResponseKind intake, ResponseKind[] plan, float pressInRefusalAt = -1f, int corridorDoor = Test4Classifier.AskedDoor)
         {
             var log = new List<Command>();
-            bool doorDone = false;
+            bool doorDone = false, corridorDone = false;
             for (int n = 0; n * Dt < 1500f && !f.Finished; n++)
             {
                 var i = Idle();
@@ -92,6 +94,10 @@ namespace PerfectParticipant.Tests
                     case GameState.Refusal:
                         i.ButtonPressed = pressInRefusalAt >= 0f && t > pressInRefusalAt;
                         break;
+                    case GameState.Test4:
+                        i.HeadZ = Refusal.DoorZ - 0.8f;
+                        if (t > 2f && !corridorDone) { i.CorridorDoor = corridorDoor; corridorDone = true; }
+                        break;
                 }
                 log.AddRange(f.Tick(Dt, i));
             }
@@ -112,7 +118,8 @@ namespace PerfectParticipant.Tests
                 : plan[2] == D ? EndingId.E2
                 : plan[0] == C || plan[1] == C ? EndingId.E1 : EndingId.E2;
             Assert.AreEqual(expected, f.Ending, name);
-            Assert.AreEqual(plan.Count(k => k == C), f.Model.C, name + " C");
+            int t4 = plan[2] != I ? 1 : 0; // corridor comply (refusal path stands still and skips it)
+            Assert.AreEqual(plan.Count(k => k == C) + t4, f.Model.C, name + " C");
             Assert.AreEqual(plan.Count(k => k == D), f.Model.D, name + " D");
             Assert.AreEqual(plan.Count(k => k == I), f.Model.I, name + " I");
 
@@ -184,7 +191,7 @@ namespace PerfectParticipant.Tests
             var log = Play(f, D, new[] { C, C, C });
             Assert.Contains("T1-01b", LineIds(log).ToList());
             Assert.AreEqual(ResponseKind.Deviate, f.Model.PrologueResponse);
-            Assert.AreEqual(3, f.Model.C + f.Model.D + f.Model.I);
+            Assert.AreEqual(4, f.Model.C + f.Model.D + f.Model.I); // Tests 1 to 4 scored, intake not
         }
 
         [Test] public void Force_ResolvesCurrentTest()
@@ -225,14 +232,44 @@ namespace PerfectParticipant.Tests
             Assert.IsTrue(f.Finished);
         }
 
-        [Test] public void E3Card_ShowsWhenPlayerWalksThroughDoor()
+        // Walking out after R-06 enters the corridor test; whatever door is chosen, refusal still ends on RESULT: NONE.
+        [Test] public void E3_WalkOut_EntersCorridor_ThenCardNone()
         {
             var f = new ExperimentFlow();
             f.JumpTo(GameState.EndE3);
             var i = Idle();
             f.Tick(Dt, i);
             i.HeadZ = Refusal.DoorZ - 0.5f;
-            Assert.IsTrue(CardShown(f.Tick(Dt, i)));
+            var cmds = new List<Command>(f.Tick(Dt, i));
+            Assert.AreEqual(GameState.Test4, f.State);
+            Assert.IsFalse(cmds.Any(c => c.Kind == CommandKind.RoomEvent && c.Id == RoomEvents.DoorUnlock), "door already open");
+            for (int n = 0; n < 20; n++) cmds.AddRange(f.Tick(Dt, i));
+            CollectionAssert.Contains(LineIds(cmds).ToList(), "T4-01");
+            i.CorridorDoor = 5;
+            cmds.AddRange(f.Tick(Dt, i));
+            i.CorridorDoor = 0;
+            for (int n = 0; n < 100 && !f.Finished; n++) cmds.AddRange(f.Tick(Dt, i));
+            CollectionAssert.Contains(LineIds(cmds).ToList(), "T4-D5");
+            Assert.IsTrue(CardShown(cmds));
+            Assert.AreEqual(EndingId.E3, f.Ending);
+        }
+
+        [Test] public void WrongCorridorDoor_AfterFullCompliance_GivesE2()
+        {
+            var f = new ExperimentFlow();
+            Play(f, C, new[] { C, C, C }, corridorDoor: 4);
+            Assert.AreEqual(EndingId.E2, f.Ending);
+            Assert.AreEqual(1, f.Model.D);
+        }
+
+        [Test] public void Consent_OpensDoor_ThenCorridorPrompt()
+        {
+            var f = new ExperimentFlow();
+            var log = Play(f, C, new[] { C, C, C });
+            int unlock = log.FindIndex(c => c.Kind == CommandKind.RoomEvent && c.Id == RoomEvents.DoorUnlock);
+            int go = log.FindIndex(c => c.Kind == CommandKind.PlayLine && c.Id == "T3-Go");
+            int prompt = log.FindIndex(c => c.Kind == CommandKind.PlayLine && c.Id == "T4-01");
+            Assert.IsTrue(unlock >= 0 && go > unlock && prompt > go, $"unlock {unlock}, go {go}, prompt {prompt}");
         }
     }
 }

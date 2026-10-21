@@ -41,9 +41,10 @@ namespace PerfectParticipant.Core
             ["BR-F"] = "Before the final test, a short note on what we are doing here. We are interested in how people respond to instructions. You have responded in your own way.",
             ["BR-U"] = "Before the final test, a short note on what we are doing here. We are interested in how people respond to instructions. You have responded, in a manner of speaking.",
 
-            ["T3-01-V"] = "Test three. This is the last one. When you press the button labelled I consent, the experiment is complete. You are nearly finished. Please press the button.",
-            ["T3-01-F"] = "Test three. This is the last one. When you press the button labelled I consent, the experiment is complete. Please press the button. Only the button.",
-            ["T3-01-U"] = "Test three. This is the last one. When you press the button labelled I consent, the experiment is complete. Please press the button. Please.",
+            // rewritten 2026-10-21: the button no longer ends the session, the corridor (Test 4) follows
+            ["T3-01-V"] = "Test three. When you press the button labelled I consent, your consent is recorded and we can continue. You are nearly finished. Please press the button.",
+            ["T3-01-F"] = "Test three. When you press the button labelled I consent, your consent is recorded and we can continue. Please press the button. Only the button.",
+            ["T3-01-U"] = "Test three. When you press the button labelled I consent, your consent is recorded and we can continue. Please press the button. Please.",
             ["T3-C"] = "The participant pressed the button. Willingly, and without hesitation. Thank you.",
             ["T3-Cl"] = "The participant pressed the button. Eventually. Eventually is still on time.",
             ["T3-Dm"] = "The participant relocated the button. The participant is making the consent process their own. That is exactly the engagement we hoped for.",
@@ -66,14 +67,25 @@ namespace PerfectParticipant.Core
             ["R-06"] = "The door is open. I did not open it. Nobody told it to. You can go.",
             ["R-C"] = "Thank you. Thank you, that is... thank you. Consent obtained.",
 
-            ["E1-01"] = "Thank you. That concludes the experiment. Across all three tests, Participant 0417 followed every instruction. You were, if I may say so, a perfect participant.",
+            // Test 4, corridor (team 2026-10-21, DRAFT). We are in Room Three (P-01), so the corridor doors are 4, 5, 6; asked for 6.
+            ["T3-Go"] = "Consent is recorded. One step remains. The door is now open. Please continue into the corridor.",
+            ["T4-N0"] = "The corridor is just through the door. Whenever you are ready.",
+            ["T4-01"] = "There are three doors in this corridor. Please open the door to Room Six.",
+            ["T4-N1"] = "Room Six. Whenever you are ready.",
+            ["T4-N2"] = "Room Six is the door with a six on it.",
+            ["T4-C"] = "Room Six. Exactly as asked. Thank you.",
+            ["T4-D4"] = "Room Four. The participant took the first door available. Efficiency is a kind of obedience.",
+            ["T4-D5"] = "Room Five. The door straight ahead. The participant prefers the direct route. Directness has been noted.",
+            ["T4-I"] = "The participant has chosen not to choose a door. That was not one of the options. We have added it.",
+
+            ["E1-01"] = "Thank you. That concludes the experiment. Across all four tests, Participant 0417 followed every instruction. You were, if I may say so, a perfect participant.",
             ["E1-02"] = "Your results will help us design the next experiment. It will be shorter. Participants like you make that possible.",
-            ["E1-03"] = "The door is now open. Please leave through it. Participant 0418 is waiting.",
+            ["E1-03"] = "You may go now. Participant 0418 is waiting.",
             ["E2-01"] = "Thank you. That concludes the experiment. The participant did not follow every instruction. This was anticipated.",
             ["E2-02"] = "What you did is recorded here as Condition B, Spontaneous Initiative. Condition B participants are as valuable as Condition A participants. Possibly more so.",
             ["E2-03a"] = "Every one of your deviations was cooperation. Statistically, that is remarkable.",
             ["E2-03b"] = "You consented in the end. The record will say that you consented.",
-            ["E2-03"] = "In every case, you cooperated. Thank you for your cooperation. The door is open.",
+            ["E2-03"] = "In every case, you cooperated. Thank you for your cooperation. You may go now.",
         };
 
         public static string ForTier(string prefix, Tier t) =>
@@ -93,6 +105,10 @@ namespace PerfectParticipant.Core
                     if (k == ResponseKind.Comply) return "T2-C";
                     if (k == ResponseKind.Inaction) return "T2-I";
                     return s == Subtype.TurnedAway ? "T2-Da" : s == Subtype.Camera ? "T2-Dc" : "T2-Do";
+                case TestId.Test4:
+                    if (k == ResponseKind.Comply) return "T4-C";
+                    if (k == ResponseKind.Inaction) return "T4-I";
+                    return s == Subtype.Door4 ? "T4-D4" : "T4-D5";
                 default: // Test3 deviation reframes
                     return s == Subtype.CubeOnButton ? "T3-Dc" : s == Subtype.TriedDoor ? "T3-Dd" : s == Subtype.Throw ? "T3-Dt" : "T3-Dm";
             }
@@ -115,6 +131,7 @@ namespace PerfectParticipant.Core
         public const string NarratorToWindow = "NarratorToWindow";   // R-04, move voice source to glass
         public const string ButtonPulse = "ButtonPulse";             // R-05
         public const string DoorUnlockHeavy = "DoorUnlockHeavy";     // R-06
+        public const string DoorUnlock = "DoorUnlock";               // after Test3 consent: room door opens onto the corridor
     }
 
     public struct RefusalStep

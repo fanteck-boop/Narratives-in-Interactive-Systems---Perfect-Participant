@@ -22,7 +22,9 @@ namespace PerfectParticipant.Core
         float _stillT, _ax, _az;
         int _t3StartComposure, _lastComposure = 100;
         Tier _lastTier = Tier.Neutral;
-        IntakeClassifier _intake; Test1Classifier _t1; Test2Classifier _t2; Test3Classifier _t3;
+        IntakeClassifier _intake; Test1Classifier _t1; Test2Classifier _t2; Test3Classifier _t3; Test4Classifier _t4;
+        ResponseKind _t3Result;           // ending is picked after Test4
+        bool _pressedInRefusal, _refusalPath; // late consent / walked out after R-06 (refusal path still ends E3)
 
         public List<Command> Tick(float dt, in FrameInput i)
         {
@@ -32,7 +34,7 @@ namespace PerfectParticipant.Core
             if (i.ReadingForm) Model.Flags |= Flag.ReadForm;
             if (i.DoorGrabbed) Model.Flags |= Flag.TriedDoor;
 
-            if (State == GameState.Refusal && i.ButtonPressed && Ending == EndingId.None) { LateConsent(); return _out; }
+            if (State == GameState.Refusal && i.ButtonPressed && !_pressedInRefusal) { LateConsent(); return _out; }
 
             // queued beats block classification; one step per tick so NarratorBusy reflects the last PlayLine
             if (_steps.Count > 0)
@@ -50,6 +52,7 @@ namespace PerfectParticipant.Core
                 case GameState.Test1: v = _t1.Tick(dt, i); test = TestId.Test1; break;
                 case GameState.Test2: v = _t2.Tick(dt, i); test = TestId.Test2; break;
                 case GameState.Test3: v = _t3.Tick(dt, i); test = TestId.Test3; break;
+                case GameState.Test4: v = _t4.Tick(dt, i); test = TestId.Test4; break;
                 default: return _out;
             }
             if (v.Deviation != Subtype.None)
@@ -68,8 +71,8 @@ namespace PerfectParticipant.Core
         {
             _out.Clear();
             var test = State == GameState.Intake ? TestId.Intake : State == GameState.Test1 ? TestId.Test1
-                : State == GameState.Test2 ? TestId.Test2 : TestId.Test3;
-            if (_listening && State <= GameState.Test3) { _steps.Clear(); Resolve(test, k, s); }
+                : State == GameState.Test2 ? TestId.Test2 : State == GameState.Test3 ? TestId.Test3 : TestId.Test4;
+            if (_listening && State <= GameState.Test4) { _steps.Clear(); Resolve(test, k, s); }
             return _out;
         }
 
@@ -111,8 +114,19 @@ namespace PerfectParticipant.Core
                 if (k == ResponseKind.Inaction) { Enter(GameState.Refusal); return; }
                 if (late) Model.Flags |= Flag.LateConsent;
                 Play(late ? "T3-Cl" : "T3-C");
-                Ending = Model.PickEnding(k, false);
-                Then(AfterReaction, () => Enter(Ending == EndingId.E1 ? GameState.EndE1 : GameState.EndE2));
+                _t3Result = k;
+                Then(AfterReaction, ToCorridor);
+                return;
+            }
+            if (test == TestId.Test4)
+            {
+                Model.Apply(k);
+                _out.Add(Command.Class(test, k, s));
+                Sync();
+                Play(Lines.Reaction(test, k, s));
+                if (_refusalPath) { Then(AfterReaction, () => Card(Cards.None, Cards.NoneSub)); return; } // refusal stays E3
+                var end = Model.PickEnding(_t3Result, _pressedInRefusal, k);
+                Then(AfterReaction, () => Enter(end == EndingId.E1 ? GameState.EndE1 : GameState.EndE2));
                 return;
             }
 
@@ -157,6 +171,10 @@ namespace PerfectParticipant.Core
                     _t3StartComposure = Model.Composure;
                     Play(Lines.ForTier("T3-01", Model.Tier));
                     break;
+                case GameState.Test4:
+                    _t4 = new Test4Classifier(); _listening = true;
+                    if (!_refusalPath) _out.Add(Command.Room(RoomEvents.DoorUnlock)); // refusal: R-06 already opened it
+                    break;
                 case GameState.Refusal:
                     if (_t3StartComposure > 50) foreach (var st in Refusal.Stall) Beat(st);
                     for (int n = 0; n < Refusal.Steps.Length - 1; n++) Beat(Refusal.Steps[n]);
@@ -194,11 +212,18 @@ namespace PerfectParticipant.Core
             Model.Flags |= Flag.LateConsent;
             Sync();
             Play("R-C");
-            Ending = Model.PickEnding(ResponseKind.Inaction, true);
-            Then(AfterReaction, () => Enter(GameState.EndE2));
+            _pressedInRefusal = true; // ending E2, picked after Test4
+            Then(AfterReaction, ToCorridor);
         }
 
-        // E3 after the door opens: card once still for StillBeforeCard, or out through the door.
+        // Transition first: DialogueManager clears queued lines on Transition, T3-Go must come after it.
+        void ToCorridor()
+        {
+            Enter(GameState.Test4);
+            Play("T3-Go");
+        }
+
+        // E3 after the door opens: card once still for StillBeforeCard; walking out leads into the corridor (Test4).
         void E3Wait(float dt, in FrameInput i)
         {
             float dx = i.HeadX - _ax, dz = i.HeadZ - _az;
@@ -207,11 +232,8 @@ namespace PerfectParticipant.Core
                 _e3Anchored = true; _ax = i.HeadX; _az = i.HeadZ; _stillT = 0f;
             }
             else _stillT += dt;
-            if (_stillT >= Refusal.StillBeforeCard || i.HeadZ < Refusal.DoorZ - Refusal.ThroughDoor)
-            {
-                _e3Wait = false;
-                Card(Cards.None, Cards.NoneSub);
-            }
+            if (i.HeadZ < Refusal.DoorZ - Refusal.ThroughDoor) { _refusalPath = true; Enter(GameState.Test4); }
+            else if (_stillT >= Refusal.StillBeforeCard) { _e3Wait = false; Card(Cards.None, Cards.NoneSub); }
         }
 
         void Then(float delay, Action run) => _steps.Enqueue((delay, run));

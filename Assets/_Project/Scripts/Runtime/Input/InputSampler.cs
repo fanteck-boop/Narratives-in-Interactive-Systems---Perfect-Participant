@@ -21,6 +21,7 @@ namespace PerfectParticipant
         Collider[] consoleCols;
         bool bPress, bConsole, bDoor, bOther, bRel;
         float relSpeed, offTime;
+        int corridorDoor;
         bool pInTray, pWin, pCam, pAway, pMark;
         readonly Vector3[] rest = new Vector3[2];
         readonly bool[] hasRest = new bool[2];
@@ -46,6 +47,7 @@ namespace PerfectParticipant
                 case GrabKind.Cube: Raise(PlayerEventType.CubeGrabbed); break;
                 case GrabKind.Console: bConsole = true; Raise(PlayerEventType.ConsoleMoved, g.name); break;
                 case GrabKind.Door: bDoor = true; Raise(PlayerEventType.DoorGrabbed, g.name); break;
+                case GrabKind.CorridorDoor: corridorDoor = g.number; Raise(PlayerEventType.DoorGrabbed, g.name); break;
                 default: bOther = true; Raise(PlayerEventType.ObjectMoved, g.name); break;
             }
         }
@@ -168,7 +170,8 @@ namespace PerfectParticipant
             f.ButtonCovered = button && button.HasKind(GrabKind.Other);
             f.TouchedTableOrConsole = Touching(leftHand) || Touching(rightHand);
 
-            bPress = bConsole = bDoor = bOther = bRel = false; relSpeed = 0f;
+            f.CorridorDoor = corridorDoor;
+            bPress = bConsole = bDoor = bOther = bRel = false; relSpeed = 0f; corridorDoor = 0;
             return f;
         }
     }

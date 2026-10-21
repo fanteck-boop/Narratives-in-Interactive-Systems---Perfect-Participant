@@ -206,12 +206,10 @@ namespace PerfectParticipant
                     warm = true;
                     foreach (var k in new List<string>(leds.Keys)) if (!k.StartsWith("LED_Camera")) SetLed(k, Green);
                     Beep(PlaceholderAudio.Applause(), grille ? grille.position : Vector3.up * 2.5f, 0.7f);
-                    Beep(PlaceholderAudio.Chime(), door ? door.position : Vector3.back * 2f, 1f);
-                    Unlock(false);
+                    Beep(PlaceholderAudio.Chime(), door ? door.position : Vector3.back * 2f, 1f); // door itself opened on DoorUnlock after Test3
                     break;
                 case GameState.EndE2:
                     SetLed("LED_Clipboard", new Color(1f, 0.9f, 0.7f));
-                    Unlock(false);
                     break;
             }
         }
@@ -243,6 +241,7 @@ namespace PerfectParticipant
                     break;
                 case RoomEvents.ButtonPulse: pulse = true; break;
                 case RoomEvents.DoorUnlockHeavy: pulse = false; SetLed("ConsentButton", Amber); Unlock(true); break;
+                case RoomEvents.DoorUnlock: Unlock(false); break; // consent given: the room door opens onto the corridor
             }
         }
 

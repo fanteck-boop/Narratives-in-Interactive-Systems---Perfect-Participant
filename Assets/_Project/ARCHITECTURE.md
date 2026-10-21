@@ -24,7 +24,7 @@ class ExperimentFlow {
 }
 class BehaviourModel { int C, D, I, Composure; Tier Tier; Flag Flags; ResponseKind PrologueResponse;
   void Apply(ResponseKind r); void AddComposure(int d); void SetComposure(int v);
-  Tier PickTier(); EndingId PickEnding(ResponseKind t3, bool pressedDuringRefusal); bool Has(Flag f); }
+  Tier PickTier(); EndingId PickEnding(ResponseKind t3, bool pressedDuringRefusal, ResponseKind t4); bool Has(Flag f); }
 XClassifier.Tick(float dt, in FrameInput i) -> Verdict { Kind, Subtype, Nudge, ComposureDelta, Deviation }
 static Lines.Text[id], Lines.ForTier(prefix, tier), Lines.Reaction(test, kind, subtype)
 ```
@@ -34,7 +34,7 @@ Returned command list is reused: consume before the next call. Timing constants 
 Edge = true on one frame only. Level = true while it holds. Angles in degrees, distances in metres, world space, mark at origin.
 - Head: `HeadX, HeadZ, HeadYaw`, `DistFromMark` (horizontal), `GazeAngleToWindow` (head fwd vs window centre), `GazeAngleToCamera` (vs CeilingCamera), `FacingAwayAngle` (flat fwd vs flat dir to window, 180 = back to it), `HandsIdle`.
 - Cube: `CubeHeld` (level), `CubeReleased` (edge, `CubeHeld` false that frame) + `CubeReleaseSpeed`, `CubeInTray` (level, in TrayZone, not held), `CubeOffTable` (level, not held, outside TableZone and TrayZone), `CubeHandBehindHead` (level, holding hand, normalized (hand - head) dot head fwd < -0.3), `CubeOnButton` (level, in ButtonZone).
-- Other: `ButtonPressed` (edge, poke/controller only, never physics), `ButtonCovered` (level, non-cube object in ButtonZone), `ConsoleMoved` (edge, panel grabbed), `DoorGrabbed` (edge), `TouchedTableOrConsole` (level), `OtherObjectMoved` (edge, any other grabbable grabbed), `ReadingForm` (level, head within 0.5 m of form and facing it).
+- Other: `ButtonPressed` (edge, poke/controller only, never physics), `ButtonCovered` (level, non-cube object in ButtonZone), `ConsoleMoved` (edge, panel grabbed), `DoorGrabbed` (edge), `CorridorDoor` (edge, room number 4/5/6 of the corridor door grabbed, 0 none), `TouchedTableOrConsole` (level), `OtherObjectMoved` (edge, any other grabbable grabbed), `ReadingForm` (level, head within 0.5 m of form and facing it).
 - `NarratorBusy` set by `ExperimentRunner` from `DialogueManager.Busy`.
 
 ## Commands (consumed via `ExperimentRunner.CommandIssued`)
@@ -44,13 +44,13 @@ Edge = true on one frame only. Level = true while it holds. Angles in degrees, d
 | StopDialogue | | DialogueManager: cut current line, clear queue |
 | SetTier / SetComposure | Tier / Value | RoomStateController (light preset, props, window, hum), logger. Only sent on change |
 | RoomEvent | Id (`RoomEvents.*`) | RoomStateController / audio, one-shot beats |
-| Transition | State | RoomStateController: per-state setup (Test1 cube on table, Test3 console lit + form, EndE1 warm + green LEDs + applause + door unlock chime, EndE2 clipboard lit + door unlock, Refusal nothing) |
-| ShowCard | Id = title, Text = subtitle | CardDisplay on door / black screen for E3 |
+| Transition | State | RoomStateController: per-state setup (Test1 cube on table, Test3 console lit + form, EndE1 warm + green LEDs + applause + chime, EndE2 clipboard lit, Refusal nothing). The room door opens on RoomEvent `DoorUnlock` (after Test3 consent, before Test4) or `DoorUnlockHeavy` (R-06) |
+| ShowCard | Id = title, Text = subtitle | CardDisplay: black screen with text (all endings, the player is in the corridor) |
 | Classified | Test, Response, Subtype | TallyWall (skip Test=Intake), SessionLogger |
 SessionLogger writes every command plus `PlayerEvent`s to `Application.persistentDataPath/session_<time>.csv`: time, state, kind, id/subtype, C, D, I, composure.
 
 ## Scene layout (package C), metres, origin = mark on floor, +Z north, +X east
-Room shell 4 x 4, ceiling 2.6. `Spawn` (0,0,-1.2) facing +Z. `MarkZone` cylinder r 0.35. `ObservationWindow` north wall centre (0,1.5,2), 2.4 x 1.2, `Silhouette_01..03` behind at z 2.6. `WallTally` (-1.2,1.5,1.98). `CorkBoard` (1.2,1.5,1.98). `Console` west (-1.1,0,0.2), top 1.0, with `ConsentButton` and `ConsentForm` on top, `ButtonZone` box over button. `Table` east (1.1,0,0), top 0.75, `TableZone` box over top, `Cube` 0.08 at (1.0,0.79,-0.1), `Tray` + `TrayZone` (1.15,0.76,0.15). `Door` south (0,0,-2) 0.9 x 2.1 with `DoorHandle` + `DoorZone`. `ClipboardShelf` + `Clipboard` west wall (-1.95,1.4,1.0). `Chair` (-1.4,0,-1.4). `SpeakerGrille` (0,2.58,0) = narrator AudioSource. `CeilingCamera` (1.6,2.5,-1.6) aimed at mark. Floor `TapeMarks`.
+Room shell 4 x 4, ceiling 2.6. `Spawn` (0,0,-1.2) facing +Z. `MarkZone` cylinder r 0.35. `ObservationWindow` north wall centre (0,1.5,2), 2.4 x 1.2, `Silhouette_01..03` behind at z 2.6. `WallTally` (-1.2,1.5,1.98). `CorkBoard` (1.2,1.5,1.98). `Console` west (-1.1,0,0.2), top 1.0, with `ConsentButton` and `ConsentForm` on top, `ButtonZone` box over button. `Table` east (1.1,0,0), top 0.75, `TableZone` box over top, `Cube` 0.08 at (1.0,0.79,-0.1), `Tray` + `TrayZone` (1.15,0.76,0.15). `Door` south (0,0,-2) 0.9 x 2.1 with `DoorHandle` + `DoorZone`. Behind it `Corridor` (x -3..3, z -2.1..-3.6) with `CorridorDoor_4/5/6` on the far wall at x -2, 0, +2 (number on the door, `ROOM n` sign beside it; GrabTracker kind CorridorDoor + number, XRSimpleInteractable, doors stay shut). Test4 asks for Room 6. `ClipboardShelf` + `Clipboard` west wall (-1.95,1.4,1.0). `Chair` (-1.4,0,-1.4). `SpeakerGrille` (0,2.58,0) = narrator AudioSource. `CeilingCamera` (1.6,2.5,-1.6) aimed at mark. Floor `TapeMarks`.
 
 ## Naming
 GameObjects and prefabs PascalCase exactly as above. Prefabs in `Prefabs/` same name. Zones are trigger colliders on child objects named `*Zone`. Scene: `Scenes/Lab.unity`. Materials `M_<Name>`. Dialogue assets `Data/Dialogue/<LineId>.asset`. Audio `Audio/VO/<LineId>_clean.wav`, `<LineId>_slipped.wav`. Namespaces `PerfectParticipant` (Runtime), `PerfectParticipant.Core`, `PerfectParticipant.Editor`.

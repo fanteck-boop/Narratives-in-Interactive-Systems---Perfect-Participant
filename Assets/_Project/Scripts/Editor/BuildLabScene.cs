@@ -44,7 +44,7 @@ namespace PerfectParticipant.Editor
             RenderSettings.ambientMode = AmbientMode.Flat;
             RenderSettings.ambientLight = new Color(0.45f, 0.44f, 0.42f); // gamma value; 0.2 is ~0.03 linear and rendered near black
 
-            Shell(); LabDetails(); Window(); Tally(); Cork(); ConsoleObj(); TableObj(); DoorObj(); Shelf(); ChairObj();
+            Shell(); LabDetails(); Window(); Tally(); Cork(); ConsoleObj(); TableObj(); DoorObj(); Corridor(); Shelf(); ChairObj();
             CeilingProps(); Tape(); Lights(); Rig(); Systems();
             AutoWire();
             var tso = new SerializedObject(Object.FindFirstObjectByType<TallyWall>()); // chart already has row labels
@@ -99,10 +99,10 @@ namespace PerfectParticipant.Editor
         static Color G(float v) => new Color(v, v, v);
 
         // Cube faces map UV 0..1, so tiling = face size / texture span.
-        static void Tex(Material m, Texture2D t, float faceMetres)
+        static void Tex(Material m, Texture2D t, float faceMetres, float faceMetresV = -1f)
         {
             m.SetTexture("_BaseMap", t);
-            m.SetTextureScale("_BaseMap", Vector2.one * (faceMetres / LabTextures.Span));
+            m.SetTextureScale("_BaseMap", new Vector2(faceMetres, faceMetresV < 0f ? faceMetres : faceMetresV) / LabTextures.Span);
             EditorUtility.SetDirty(m);
         }
 
@@ -351,17 +351,55 @@ namespace PerfectParticipant.Editor
             T("CardSubtitle", card, new Vector3(0, -0.05f, 0), Vector3.zero, "", 0.025f, new Vector2(0.8f, 0.08f), G(0.95f));
             card.gameObject.AddComponent<CardDisplay>();
 
-            // dark unlit booth behind the doorway: the unlocked door reveals an exit
-            var b = E("ExitBooth", null, Vector3.zero).transform;
-            var dark = M("Dark", G(0.05f), 0.05f);
-            Cb("ExitFloor", b, new Vector3(0, -0.05f, -2.7f), new Vector3(2.4f, 0.1f, 1.2f), dark);
-            Cb("ExitCeiling", b, new Vector3(0, 2.65f, -2.7f), new Vector3(2.4f, 0.1f, 1.2f), dark);
-            Cb("ExitBack", b, new Vector3(0, 1.3f, -3.35f), new Vector3(2.4f, 2.6f, 0.1f), dark);
-            Cb("ExitWest", b, new Vector3(-1.25f, 1.3f, -2.7f), new Vector3(0.1f, 2.6f, 1.2f), dark);
-            Cb("ExitEast", b, new Vector3(1.25f, 1.3f, -2.7f), new Vector3(0.1f, 2.6f, 1.2f), dark);
-            var es = E("ExitSign", b, new Vector3(0, 2.1f, -3.29f), new Vector3(0, YawS, 0)).transform; // faces +Z, readable from the room
-            Qd("Plate", es, Vector3.zero, new Vector2(0.4f, 0.14f), M("ExitGlow", new Color(0.05f, 0.25f, 0.1f), 0.2f, new Color(0.1f, 0.6f, 0.25f)));
-            T("Label", es, new Vector3(0, 0, -0.001f), Vector3.zero, "EXIT", 0.07f, new Vector2(0.38f, 0.12f), G(0.9f));
+        }
+
+        // Corridor behind the room door (Test 4): x -3..3, z -2.1 (room's outer south face) to -3.6.
+        // Doors to Room 4, 5, 6 on the far wall; we are in Room Three (P-01). Room 5 is straight ahead, the asked Room 6 at the east end.
+        static void Corridor()
+        {
+            var c = E("Corridor", null, Vector3.zero).transform;
+            var wall = M("Wall", new Color(0.8f, 0.8f, 0.77f));
+            var floor = M("CorridorFloor", G(1f), 0.3f); Tex(floor, LabTextures.Floor(), 6.2f, 1.5f);
+            var ceil = M("CorridorCeiling", G(1f)); Tex(ceil, LabTextures.Ceiling(), 6.2f, 1.5f);
+            void W(string n, Vector3 p, Vector3 s, Material m) => Static(Cb(n, c, p, s, m, true));
+            W("CorridorFloor", new Vector3(0, -0.05f, -2.85f), new Vector3(6.2f, 0.1f, 1.5f), floor);
+            W("CorridorCeiling", new Vector3(0, 2.65f, -2.85f), new Vector3(6.2f, 0.1f, 1.5f), ceil);
+            W("CorridorBack", new Vector3(0, 1.3f, -3.65f), new Vector3(6.2f, 2.6f, 0.1f), wall);
+            W("CorridorWest", new Vector3(-3.05f, 1.3f, -2.85f), new Vector3(0.1f, 2.6f, 1.5f), wall);
+            W("CorridorEast", new Vector3(3.05f, 1.3f, -2.85f), new Vector3(0.1f, 2.6f, 1.5f), wall);
+            W("CorridorNorthW", new Vector3(-2.55f, 1.3f, -2.05f), new Vector3(0.9f, 2.6f, 0.1f), wall); // past the room's own south wall
+            W("CorridorNorthE", new Vector3(2.55f, 1.3f, -2.05f), new Vector3(0.9f, 2.6f, 0.1f), wall);
+
+            var panel = M("LightPanel", G(0.9f), 0.1f, new Color(1f, 0.96f, 0.9f) * 1.6f);
+            foreach (float x in new[] { -1.6f, 1.6f })
+            {
+                Static(Cb("LightPanel", c, new Vector3(x, 2.594f, -2.85f), new Vector3(1.2f, 0.012f, 0.6f), panel));
+                var li = E("CorridorLight", c, new Vector3(x, 2.4f, -2.85f)).AddComponent<Light>(); // not RoomLight*: tier/brown-out leave it alone
+                li.type = LightType.Point; li.color = new Color(0.95f, 0.97f, 1f); li.range = 4f; li.intensity = 3f; li.shadows = LightShadows.None;
+            }
+
+            var leaf = M("Door", G(0.4f), 0.2f); var trim = M("Trim", G(0.12f)); var paper = M("Paper", G(0.88f), 0.05f);
+            var metal = M("Metal", G(0.55f), 0.7f);
+            var s = new Vector3(0, YawS, 0); // faces +Z, toward the player in the corridor
+            int[] rooms = { 4, 5, 6 };
+            for (int i = 0; i < 3; i++)
+            {
+                int n = rooms[i];
+                var d = E("CorridorDoor_" + n, c, new Vector3(-2f + 2f * i, 0, -3.6f)).transform;
+                Cb("Leaf", d, new Vector3(0, 1.05f, 0.03f), new Vector3(0.9f, 2.1f, 0.06f), leaf, true);
+                Cb("FrameTop", d, new Vector3(0, 2.13f, 0.03f), new Vector3(1.06f, 0.06f, 0.08f), trim);
+                Cb("FrameL", d, new Vector3(-0.5f, 1.05f, 0.03f), new Vector3(0.06f, 2.1f, 0.08f), trim);
+                Cb("FrameR", d, new Vector3(0.5f, 1.05f, 0.03f), new Vector3(0.06f, 2.1f, 0.08f), trim);
+                Qd("NumberPlate", d, new Vector3(0, 1.5f, 0.062f), new Vector2(0.3f, 0.34f), paper, s);
+                T("Number", d, new Vector3(0, 1.5f, 0.064f), s, n.ToString(), 0.26f, new Vector2(0.28f, 0.32f), Ink);
+                // room sign to the right of the door, as the player sees it (facing -Z, right is -X)
+                Qd("RoomSign", d, new Vector3(-0.78f, 1.5f, 0.005f), new Vector2(0.34f, 0.12f), paper, s);
+                T("RoomSignText", d, new Vector3(-0.78f, 1.5f, 0.007f), s, "ROOM " + n, 0.06f, new Vector2(0.32f, 0.1f), Ink);
+                P(PrimitiveType.Cylinder, "Grip", d, new Vector3(0.33f, 1f, 0.11f), new Vector3(0.03f, 0.08f, 0.03f), metal, true);
+                d.gameObject.AddComponent<XRSimpleInteractable>(); // choosing = a grab attempt on the leaf or handle; doors stay shut
+                var g = d.gameObject.AddComponent<GrabTracker>();
+                g.kind = GrabKind.CorridorDoor; g.number = n;
+            }
         }
 
         static void Shelf()

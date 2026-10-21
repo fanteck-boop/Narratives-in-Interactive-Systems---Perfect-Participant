@@ -95,8 +95,8 @@ namespace PerfectParticipant
             }
             else if (c.Kind == CommandKind.ShowCard)
             {
-                if (c.Id == Cards.None) { blackCard = true; target = 1f; pendingBlack = c.Id + "\n<size=60%>" + c.Text + "</size>"; }
-                else { title.text = c.Id; sub.text = c.Text; }
+                // every ending now happens in the corridor, back to the room door: all cards go on the black screen
+                blackCard = true; target = 1f; pendingBlack = c.Id + (string.IsNullOrEmpty(c.Text) ? "" : "\n<size=60%>" + c.Text + "</size>");
             }
         }
 

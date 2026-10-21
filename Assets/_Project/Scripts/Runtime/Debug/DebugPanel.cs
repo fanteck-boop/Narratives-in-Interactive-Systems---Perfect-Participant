@@ -9,7 +9,7 @@ namespace PerfectParticipant
     public class DebugPanel : MonoBehaviour
     {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-        static readonly GameState[] Jumps = { GameState.Intake, GameState.Test1, GameState.Test2, GameState.Test3, GameState.Refusal, GameState.EndE1, GameState.EndE2, GameState.EndE3 };
+        static readonly GameState[] Jumps = { GameState.Intake, GameState.Test1, GameState.Test2, GameState.Test3, GameState.Test4, GameState.Refusal, GameState.EndE1, GameState.EndE2, GameState.EndE3 };
         static readonly float[] Scales = { 1f, 2f, 5f };
 
         ExperimentRunner runner;
@@ -70,7 +70,7 @@ namespace PerfectParticipant
             for (int i = 0; i < Jumps.Length; i += 4)
             {
                 GUILayout.BeginHorizontal();
-                for (int j = i; j < i + 4; j++) if (GUILayout.Button(Jumps[j].ToString())) runner.JumpTo(Jumps[j]);
+                for (int j = i; j < i + 4 && j < Jumps.Length; j++) if (GUILayout.Button(Jumps[j].ToString())) runner.JumpTo(Jumps[j]);
                 GUILayout.EndHorizontal();
             }
 

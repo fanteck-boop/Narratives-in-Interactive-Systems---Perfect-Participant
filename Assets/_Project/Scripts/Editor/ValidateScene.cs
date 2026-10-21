@@ -14,7 +14,7 @@ namespace PerfectParticipant.Editor
         {
             "Spawn", "XROrigin", "IntakeMark", "DoorHinge", "WindowBlinds", "LED_Tray", "LED_Console", "LED_Door", "LED_Camera", "LED_Clipboard", "RoomLight_Ceiling", "MarkZone", "ObservationWindow", "Silhouette_01", "Silhouette_02", "Silhouette_03",
             "WallTally", "CorkBoard", "Console", "ConsentButton", "ConsentForm", "ButtonZone", "Table", "TableZone", "Cube", "Tray", "TrayZone",
-            "WallSouthL", "ExitBooth", "ExitSign", "Door", "DoorHandle", "DoorZone", "CardDisplay", "ClipboardShelf", "Clipboard", "Chair", "SpeakerGrille", "CeilingCamera", "TapeMarks",
+            "WallSouthL", "Corridor", "CorridorDoor_4", "CorridorDoor_5", "CorridorDoor_6", "Door", "DoorHandle", "DoorZone", "CardDisplay", "ClipboardShelf", "Clipboard", "Chair", "SpeakerGrille", "CeilingCamera", "TapeMarks",
             "Systems", "ExperimentRunner", "InputSampler", "DialogueManager", "RoomStateController", "TallyWall", "SessionLogger", "DebugPanel", "SeatedMode",
         };
         static readonly string[] Zones = { "MarkZone", "ButtonZone", "TableZone", "TrayZone", "DoorZone" };
