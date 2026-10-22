@@ -16,6 +16,20 @@ namespace PerfectParticipant
         const float TapTime = 0.2f, ChargeTime = 1.2f, MinThrow = 1.5f, MaxThrow = 5f;
         float chargeStart = -1f;
         const float StandEye = 1.6f, CrouchEye = 0.5f; // 0.5: under the 0.85 m table underside, where the keycard is
+        // Crouching beside a chair sits on it instead (playtest: at 0.5 m the view sank into the seat).
+        const float SitReach = 0.65f, SitEyeAboveSeat = 0.75f;
+        readonly System.Collections.Generic.List<Transform> seats = new System.Collections.Generic.List<Transform>();
+
+        float CrouchHeight()
+        {
+            Vector3 p = transform.position;
+            foreach (var s in seats)
+            {
+                var d = s.position - p; d.y = 0f;
+                if (d.sqrMagnitude < SitReach * SitReach) return s.position.y + s.lossyScale.y * 0.5f + SitEyeAboveSeat - p.y;
+            }
+            return CrouchEye;
+        }
 
         public Transform Hand { get; private set; }
         Transform cam;
@@ -42,6 +56,8 @@ namespace PerfectParticipant
             Hand.localPosition = Ahead;
             Cursor.lockState = CursorLockMode.Locked;
             runner = FindFirstObjectByType<ExperimentRunner>();
+            foreach (var t in FindObjectsByType<Transform>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
+                if (t.name == "Seat") seats.Add(t); // lab chair, Room 8 chair, observer chairs
             // walls, table, chair and the closed door block the player; stepOffset 0 so it never climbs onto furniture
             if (!TryGetComponent(out body)) body = gameObject.AddComponent<CharacterController>();
             body.height = 1.7f; body.radius = 0.25f; body.center = new Vector3(0f, 0.85f, 0f); body.stepOffset = 0f;
@@ -68,7 +84,7 @@ namespace PerfectParticipant
 
             Hand.localPosition = k.qKey.isPressed ? Behind : Ahead;
             // hold C to crouch: the key is taped under the lab table
-            float eye = transform.position.y + (k.cKey.isPressed ? CrouchEye : StandEye);
+            float eye = transform.position.y + (k.cKey.isPressed ? CrouchHeight() : StandEye);
             cam.position = new Vector3(cam.position.x, Mathf.MoveTowards(cam.position.y, eye, 3f * Time.deltaTime), cam.position.z);
             if (held) Carry();
 
