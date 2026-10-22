@@ -634,8 +634,10 @@ namespace PerfectParticipant.Editor
                 var bin = new Vector3(back - side * 0.4f, 0, cz + 1.0f);
                 P(PrimitiveType.Cylinder, "Bin", c, bin + new Vector3(0, 0.22f, 0), new Vector3(0.32f, 0.22f, 0.32f), M("Cam", G(0.18f), 0.3f), true);
                 for (int k = 0; k < 5; k++)
-                    P(PrimitiveType.Sphere, "Crumpled", c, bin + new Vector3(0.07f * Mathf.Cos(k * 1.3f), 0.46f + 0.03f * (k % 2), 0.07f * Mathf.Sin(k * 1.3f)), Vector3.one * 0.08f, paper);
-                T("BinLabel", c, bin + new Vector3(0, 0.3f, -0.165f), Vector3.zero, "DISAGREEMENTS", 0.022f, new Vector2(0.3f, 0.05f), G(0.85f));
+                    Grabbable(P(PrimitiveType.Sphere, "Crumpled", c, bin + new Vector3(0.07f * Mathf.Cos(k * 1.3f), 0.46f + 0.03f * (k % 2), 0.07f * Mathf.Sin(k * 1.3f)), Vector3.one * 0.08f, paper, true), 0.02f);
+                Folder(c, bin + new Vector3(-side * 0.45f, 0.006f, -0.2f), 200f, @"I disagree.
+<size=70%>- 0288</size>");
+                T("BinLabel", c, bin +new Vector3(0, 0.3f, -0.165f), Vector3.zero, "DISAGREEMENTS", 0.022f, new Vector2(0.3f, 0.05f), G(0.85f));
             }
 
             // Room 8: the one before you
@@ -645,6 +647,29 @@ namespace PerfectParticipant.Editor
                 Qd("PhotoFrame", c, new Vector3(cx, 1.6f, nz), new Vector2(0.5f, 0.62f), M("Trim", G(0.12f)));
                 Qd("Photo", c, new Vector3(cx, 1.63f, nz - 0.002f), new Vector2(0.42f, 0.42f), M("Dark", G(0.05f), 0.05f));
                 T("PhotoCaption", c, new Vector3(cx, 1.36f, nz - 0.003f), Vector3.zero, "PARTICIPANT OF THE MONTH\n<b>0416</b>", 0.025f, new Vector2(0.46f, 0.08f), G(0.9f));
+            }
+
+            // more readable, grabbable traces along the route (epistemic immersion: the reframes were always on file)
+            {
+                float h4 = CorridorLayout.CorridorHalf, w4 = CorridorLayout.Wall, d4 = CorridorLayout.RoomDepth;
+                Folder(c, new Vector3(CorridorLayout.CenterX(4), 0.006f, CorridorLayout.DoorZ(4) + 0.9f), 30f, @"<b>VIEWING LOG</b>
+0412: 8 s
+0413: 8 s
+0414: 8 s
+0415: 8 s
+0416: 8 s
+Nobody looks away.");
+                float back7 = CorridorLayout.Side(7) * (h4 + w4 + d4);
+                Folder(c, new Vector3(back7 - CorridorLayout.Side(7) * 0.3f, 0.79f, CorridorLayout.DoorZ(7) - 0.25f), -75f, @"<b>0391</b>
+I agree.
+I agree.
+I agree.
+<size=70%>(asked to sign once)</size>");
+                Folder(c, new Vector3(CorridorLayout.CenterX(8), 0.485f, CorridorLayout.DoorZ(8)), 90f, @"<b>FOR 0418</b>
+Thank you for your cooperation.
+Please remain seated.");
+                var watch = Grabbable(P(PrimitiveType.Cylinder, "Watch", c, new Vector3(-0.35f, 0.31f, CorridorLayout.EndZ + 0.25f), new Vector3(0.05f, 0.006f, 0.05f), M("Metal", G(0.55f), 0.7f), true), 0.05f);
+                T("WatchFace", watch.transform, new Vector3(0, 1.05f, 0), new Vector3(90, 0, 0), "0391", 0.35f, new Vector2(1f, 1f), Ink);
             }
         }
 
@@ -724,7 +749,7 @@ namespace PerfectParticipant.Editor
             T("CctvLabel", r, desk + new Vector3(0, 1.19f, 0.048f), Vector3.zero, "ROOM 1  -  LIVE", 0.03f, new Vector2(0.5f, 0.05f), new Color(0.8f, 0.1f, 0.08f));
             var cup = M("Cup", G(0.9f), 0.5f);
             for (int k = 0; k < 2; k++)
-                P(PrimitiveType.Cylinder, "Cup", r, desk + new Vector3(-0.3f + 0.55f * k, 0.8f, -0.1f), new Vector3(0.08f, 0.05f, 0.08f), cup);
+                Grabbable(P(PrimitiveType.Cylinder, "Cup", r, desk + new Vector3(-0.3f + 0.55f * k, 0.8f, -0.1f), new Vector3(0.08f, 0.05f, 0.08f), cup, true), 0.15f);
             // the observers were participants once
             Folder(r, desk + new Vector3(0.05f, 0.762f, -0.12f), 10f, "<b>0416</b>\nPerfect participant.\nReassigned to Room 6.\n<size=70%>Start date: tomorrow.</size>");
         }
