@@ -110,7 +110,7 @@ namespace PerfectParticipant.Tests
         {
             int n = f.RouteTarget;
             i.HeadX = 0f; i.HeadZ = CorridorZ;
-            if (n == 0) return;
+            if (n == 0) { i.HeadZ = CorridorLayout.EndZ - 2f; return; } // route done: walk into the hall
             i.HeadZ = CorridorLayout.DoorZ(n);
             if (f.InRoom != n && !f.IsDoorOpen(n)) { i.CorridorDoor = n; return; } // inside, the door is shut behind us
             i.HeadX = CorridorLayout.CenterX(n);
@@ -300,6 +300,20 @@ namespace PerfectParticipant.Tests
             CollectionAssert.Contains(LineIds(log).ToList(), "R5-C");
             Assert.IsTrue(f.IsDoorOpen(5));
             Assert.AreEqual(2, f.RouteTarget);
+        }
+
+        [Test] public void Route_Done_OpensHall_EndingWaitsForTheHall()
+        {
+            var (f, log) = Corridor();
+            for (int n = 0; n < 20000 && f.RouteTarget != 0; n++) { var r = Idle(); RouteDriver(f, ref r); log.AddRange(f.Tick(Dt, r)); }
+            Assert.IsTrue(f.IsDoorOpen(CorridorLayout.Hall));
+            CollectionAssert.Contains(LineIds(log).ToList(), "C-Hall");
+            var c = Idle(); c.HeadZ = CorridorZ;
+            for (int n = 0; n < 2000; n++) log.AddRange(f.Tick(Dt, c)); // loitering in the corridor never ends it
+            Assert.AreEqual(GameState.Test4, f.State);
+            var h = Idle(); h.HeadZ = CorridorLayout.EndZ - 2f;
+            for (int n = 0; n < 2000 && f.State == GameState.Test4; n++) log.AddRange(f.Tick(Dt, h));
+            Assert.That(f.State, Is.EqualTo(GameState.EndE1).Or.EqualTo(GameState.EndE2)); // jumped in, so T3 decides which
         }
 
         [Test] public void Route_WrongRoom_WaitOut_Reopens()

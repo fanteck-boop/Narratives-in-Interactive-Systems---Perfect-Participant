@@ -79,6 +79,7 @@ namespace PerfectParticipant.Core
             ["C-Go7"] = "Next, Room Seven.",
             ["C-Go8"] = "Finally, Room Eight.",
             ["C-N1"] = "The next room, whenever you are ready.",
+            ["C-Hall"] = "Thank you. That was the last room. Please continue through the door at the end of the corridor.",
             ["R2-01"] = "Room Two. Please place the box on the shelf.",
             ["R2-C"] = "The box is on the shelf. Thank you.",
             ["R4-01"] = "Room Four. Please look at the screen until it has finished with you.",

@@ -132,7 +132,7 @@ namespace PerfectParticipant
             corridorHum = ch;
             foreach (var t in FindObjectsByType<Transform>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
                 if (t.name == "NarratorSpeaker") speakers.Add(t);
-            for (int n = CorridorLayout.First; n <= CorridorLayout.Last; n++)
+            for (int n = CorridorLayout.First; n <= CorridorLayout.Hall; n++)
             {
                 var l = RoomUtil.Named("Leaf_" + n);
                 if (l) cdoors[n] = new CDoor { leaf = l };

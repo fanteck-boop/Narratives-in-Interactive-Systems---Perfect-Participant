@@ -7,13 +7,14 @@ namespace PerfectParticipant.Core
     // (2, 4, 6, 8) on the right (-X), odd rooms (3, 5, 7) on the left (+X). Rooms 3 m along the corridor, 3.5 m deep.
     public static class CorridorLayout
     {
-        public const int Lab = 1, First = 2, Last = 8;
+        public const int Lab = 1, First = 2, Last = 8, Hall = 9;      // Hall: the big room past the corridor end, opened after Room 8
         public static readonly int[] Order = { 2, 4, 7, 8 };          // the route the facility wants
         public static bool Forbidden(int n) => n == 3 || n == 6;      // locked; the key under the lab table opens them
         public const float LabDoorZ = -2f, CorridorHalf = 0.75f, Wall = 0.1f, SlotLen = 3f, RoomDepth = 3.5f, FirstDoorZ = -3.6f;
         public const int Slots = 4;                                    // right side has 4 rooms, left side 3
         public const float EndZ = FirstDoorZ - SlotLen * (Slots - 1) - SlotLen * 0.5f; // -14.1
         public const float SeatRadius = 0.5f;                          // Room 8 chair at the room centre
+        public const float HallHalf = 7f, HallDepth = 14f, HallHeight = 6f;
         public const float CloseDepth = 1.2f;                          // the door shuts once the head is this far into the room (playtest: shutting at the threshold trapped the player in the leaf)
         public const float ScreenCone = 20f;                           // Room 4 gaze cone
 
@@ -28,6 +29,7 @@ namespace PerfectParticipant.Core
         public static int RoomAt(float x, float z)
         {
             if (z > LabDoorZ) return Lab;
+            if (z < EndZ - Wall) return Hall;
             if (Math.Abs(x) <= CorridorHalf + Wall * 0.5f) return 0;
             int slot = (int)Math.Round((FirstDoorZ - z) / SlotLen);
             int n = (x < 0f ? 2 : 3) + 2 * slot;
@@ -62,7 +64,8 @@ namespace PerfectParticipant.Core
         int _routeIdx, _inRoom;
         float _roomT, _taskT, _idleT;
         bool _routeClean, _roomDone, _inCorridor, _idleNudged;
-        readonly bool[] _open = new bool[CorridorLayout.Last + 1], _lockedTried = new bool[CorridorLayout.Last + 1];
+        readonly bool[] _open = new bool[CorridorLayout.Hall + 1], _lockedTried = new bool[CorridorLayout.Hall + 1];
+        bool _hallOpen;
 
         // read by tests and the debug panel
         public int RouteTarget => State == GameState.Test4 && _routeIdx < CorridorLayout.Order.Length ? CorridorLayout.Order[_routeIdx] : 0;
@@ -72,7 +75,7 @@ namespace PerfectParticipant.Core
         void RouteStart()
         {
             _routeIdx = 0; _inRoom = 0; _roomT = _taskT = _idleT = 0f;
-            _routeClean = true; _roomDone = _inCorridor = _idleNudged = false;
+            _routeClean = true; _roomDone = _inCorridor = _idleNudged = _hallOpen = false;
             Array.Clear(_open, 0, _open.Length); Array.Clear(_lockedTried, 0, _lockedTried.Length);
             _listening = true;
         }
@@ -86,6 +89,7 @@ namespace PerfectParticipant.Core
                 if ((_idleT += dt) >= CorridorIdle) { RouteClass(ResponseKind.Inaction); FinishRoute(); } // never left the lab
                 return;
             }
+            if (_hallOpen) { if (at == CorridorLayout.Hall) FinishRoute(); return; } // the ending waits in the hall
             if (i.CorridorDoor != 0) DoorAttempt(i.CorridorDoor);
             if (i.CardSwiped != 0) CardSwipe(i.CardSwiped);
 
@@ -165,7 +169,7 @@ namespace PerfectParticipant.Core
         void Advance()
         {
             _routeIdx++; _idleT = 0f; _idleNudged = false;
-            if (_routeIdx >= CorridorLayout.Order.Length) FinishRoute();
+            if (_routeIdx >= CorridorLayout.Order.Length) { _hallOpen = true; Door(RoomEvents.DoorOpen, CorridorLayout.Hall); Play("C-Hall"); }
             else Play("C-Go" + CorridorLayout.Order[_routeIdx]);
         }
 

@@ -382,7 +382,6 @@ namespace PerfectParticipant.Editor
             void W(string n, Vector3 p, Vector3 s, Material m) => Static(Cb(n, c, p, s, m, true));
             W("CorridorFloor", new Vector3(0, -0.05f, cz), new Vector3(2f * h, 0.1f, len), floor);
             W("CorridorCeiling", new Vector3(0, 2.65f, cz), new Vector3(2f * h, 0.1f, len), ceil);
-            W("CorridorEnd", new Vector3(0, 1.3f, z1 - w * 0.5f), new Vector3(2f * h + 2f * w, 2.6f, w), wall);
 
             // side walls: lintel over the doorways, wall pieces between them
             foreach (int side in new[] { -1, 1 })
@@ -420,14 +419,66 @@ namespace PerfectParticipant.Editor
                 Qd("Notice", c, p, new Vector2(0.6f, 0.42f), paper, new Vector3(0, yawN, 0));
                 T("NoticeText", c, p + Quaternion.Euler(0, yawN, 0) * new Vector3(0, 0, -0.002f), new Vector3(0, yawN, 0), s, 0.045f, new Vector2(0.54f, 0.38f), Ink);
             }
-            float lw = h - 0.001f, endZ = z1 + 0.001f;
+            float lw = h - 0.001f;
             Notice(new Vector3(lw, 1.5f, -12.0f), YawE, "PARTICIPATION IS\nVOLUNTARY\n<size=55%>Please remain in the corridor between rooms.</size>");
             Notice(new Vector3(lw, 1.5f, -13.3f), YawE, "THANK YOU\nFOR YOUR\nCOOPERATION");
-            Notice(new Vector3(0, 1.55f, endZ), YawS, "STUDY 3B\n<size=55%>Obedience to Procedure</size>");
             Cam("CorridorCamera", new Vector3(0.55f, 2.5f, z1 + 0.15f)); // watches the whole corridor, follows the head (RoomStateController)
 
             Rooms(c, wall);
-            for (int n = CorridorLayout.First; n <= CorridorLayout.Last; n++) RoomDoor(c, n, paper);
+            for (int n = CorridorLayout.First; n <= CorridorLayout.Hall; n++) RoomDoor(c, n, paper);
+            Hall(c, wall, paper);
+        }
+
+        // The hall past the corridor end, opened after Room 8: rows of empty chairs, one kept for 0417, and the first
+        // time the study names itself (brief 17.5: the purpose arrives only at the end). Its near wall closes the corridor.
+        static void Hall(Transform c, Material wall, Material paper)
+        {
+            var hl = E("Hall", c, Vector3.zero).transform;
+            float hw = CorridorLayout.HallHalf, d = CorridorLayout.HallDepth, ht = CorridorLayout.HallHeight, w = CorridorLayout.Wall;
+            float z0 = CorridorLayout.EndZ - w, z1 = z0 - d, cz = (z0 + z1) * 0.5f, wz = CorridorLayout.EndZ - w * 0.5f;
+            var floor = M("HallFloor", G(1f), 0.35f); Tex(floor, LabTextures.Floor(), 2f * hw, d);
+            var ceil = M("HallCeiling", G(1f)); Tex(ceil, LabTextures.Ceiling(), 2f * hw, d);
+            void W(string n, Vector3 p, Vector3 s, Material m) => Static(Cb(n, hl, p, s, m, true));
+            W("HallFloor", new Vector3(0, -0.05f, cz), new Vector3(2f * hw, 0.1f, d), floor);
+            W("HallCeiling", new Vector3(0, ht + 0.05f, cz), new Vector3(2f * hw, 0.1f, d), ceil);
+            W("HallWallFar", new Vector3(0, ht * 0.5f, z1 - w * 0.5f), new Vector3(2f * hw + 2f * w, ht, w), wall);
+            foreach (int s in new[] { -1, 1 })
+            {
+                W("HallWallSide", new Vector3(s * (hw + w * 0.5f), ht * 0.5f, cz), new Vector3(w, ht, d), wall);
+                float inner = 0.5f, outer = hw + w; // near wall either side of the 1 m doorway (frame at +-0.5)
+                W("HallWallNear", new Vector3(s * (inner + outer) * 0.5f, ht * 0.5f, wz), new Vector3(outer - inner, ht, w), wall);
+            }
+            W("HallWallNearTop", new Vector3(0, (2.1f + ht) * 0.5f, wz), new Vector3(1f, ht - 2.1f, w), wall);
+
+            var panel = M("LightPanel", G(0.9f), 0.1f, new Color(1f, 0.96f, 0.9f) * 1.6f);
+            foreach (float lx in new[] { -3.5f, 3.5f })
+                foreach (float lz in new[] { z0 - 3.5f, z0 - 10.5f })
+                {
+                    Static(Cb("LightPanel", hl, new Vector3(lx, ht - 0.006f, lz), new Vector3(1.2f, 0.012f, 1.2f), panel));
+                    CLight(hl, new Vector3(lx, ht - 0.4f, lz), 12f, 6f);
+                }
+            Speaker(hl, new Vector3(0, ht - 0.02f, z0 - 5f));
+
+            // 8 x 6 chairs facing the far wall; all empty, front row centre-left is tagged for the player
+            var chairM = M("Chair", G(0.2f), 0.2f);
+            for (int row = 0; row < 6; row++)
+                for (int col = 0; col < 8; col++)
+                {
+                    var ch = E("HallChair", hl, new Vector3(-3.5f + col, 0, z1 + 4f + row * 1.2f)).transform;
+                    Cb("Seat", ch, new Vector3(0, 0.45f, 0), new Vector3(0.45f, 0.05f, 0.45f), chairM, true);
+                    Cb("Back", ch, new Vector3(0, 0.72f, 0.2f), new Vector3(0.45f, 0.5f, 0.04f), chairM, true);
+                    Cb("Stem", ch, new Vector3(0, 0.22f, 0), new Vector3(0.05f, 0.44f, 0.05f), M("Metal", G(0.55f), 0.7f));
+                    Static(ch.gameObject);
+                    if (row == 0 && col == 3)
+                    {
+                        Qd("ReservedTag", ch, new Vector3(0, 0.476f, 0), new Vector2(0.2f, 0.12f), paper, new Vector3(90, 0, 0));
+                        T("ReservedText", ch, new Vector3(0, 0.477f, 0), new Vector3(90, 0, 0), "RESERVED\n<b>0417</b>", 0.035f, new Vector2(0.19f, 0.11f), Ink);
+                    }
+                }
+
+            // the name, at last, across the far wall
+            T("HallTitle", hl, new Vector3(0, 3.6f, z1 + 0.01f), new Vector3(0, YawS, 0), "STUDY 3B\n<size=45%>OBEDIENCE TO PROCEDURE</size>", 0.9f, new Vector2(12f, 3f), Ink);
+            T("HallSub", hl, new Vector3(0, 1.9f, z1 + 0.01f), new Vector3(0, YawS, 0), "Thank you for your participation. Participant 0418 is waiting.", 0.35f, new Vector2(11f, 0.6f), G(0.15f));
         }
 
         // Ceiling speaker look (disc + slits). The lab's SpeakerGrille carries the narrator AudioSource; corridor and
@@ -461,7 +512,8 @@ namespace PerfectParticipant.Editor
             var leafM = M("Door", G(0.4f), 0.2f); var trim = M("Trim", G(0.12f)); var metal = M("Metal", G(0.55f), 0.7f);
             var s = new Vector3(0, YawS, 0); // faces local +Z, toward the player in the corridor
             float x = CorridorLayout.Side(n) * (CorridorLayout.CorridorHalf + CorridorLayout.Wall * 0.5f);
-            var d = E("CorridorDoor_" + n, c, new Vector3(x, 0, CorridorLayout.DoorZ(n)), new Vector3(0, FaceCorridor(n), 0)).transform;
+            bool hall = n == CorridorLayout.Hall; // in the corridor end wall, swings into the hall
+            var d = E("CorridorDoor_" + n, c, hall ? new Vector3(0, 0, CorridorLayout.EndZ - CorridorLayout.Wall * 0.5f) : new Vector3(x, 0, CorridorLayout.DoorZ(n)), new Vector3(0, hall ? 0f : FaceCorridor(n), 0)).transform;
             Cb("FrameTop", d, new Vector3(0, 2.13f, 0.06f), new Vector3(1.06f, 0.06f, 0.04f), trim);
             Cb("FrameL", d, new Vector3(-0.5f, 1.05f, 0.06f), new Vector3(0.06f, 2.1f, 0.04f), trim);
             Cb("FrameR", d, new Vector3(0.5f, 1.05f, 0.06f), new Vector3(0.06f, 2.1f, 0.04f), trim);
@@ -471,8 +523,8 @@ namespace PerfectParticipant.Editor
             T("Number", pivot, new Vector3(0.45f, 1.5f, 0.034f), s, n.ToString(), 0.26f, new Vector2(0.28f, 0.32f), Ink);
             P(PrimitiveType.Cylinder, "Grip", pivot, new Vector3(0.78f, 1f, 0.08f), new Vector3(0.03f, 0.08f, 0.03f), metal, true);
             // room sign to the right of the door, as the player sees it (facing local -Z, right is local -X)
-            Qd("RoomSign", d, new Vector3(-0.8f, 1.5f, 0.055f), new Vector2(0.3f, 0.12f), paper, s);
-            T("RoomSignText", d, new Vector3(-0.8f, 1.5f, 0.057f), s, "ROOM " + n, 0.055f, new Vector2(0.28f, 0.1f), Ink);
+            if (!hall) Qd("RoomSign", d, new Vector3(-0.8f, 1.5f, 0.055f), new Vector2(0.3f, 0.12f), paper, s);
+            if (!hall) T("RoomSignText", d, new Vector3(-0.8f, 1.5f, 0.057f), s, "ROOM " + n, 0.055f, new Vector2(0.28f, 0.1f), Ink);
             if (CorridorLayout.Forbidden(n))
             {
                 Qd("NoEntry", d, new Vector3(-0.8f, 1.32f, 0.055f), new Vector2(0.3f, 0.1f), M("Warning", new Color(0.75f, 0.12f, 0.08f), 0.2f), s);
@@ -623,9 +675,9 @@ namespace PerfectParticipant.Editor
             P(PrimitiveType.Cylinder, "PlantPot", c, new Vector3(-0.6f, 0.2f, -2.35f), new Vector3(0.3f, 0.2f, 0.3f), M("Pot", new Color(0.35f, 0.3f, 0.28f), 0.2f), true);
             P(PrimitiveType.Sphere, "Plant", c, new Vector3(-0.6f, 0.62f, -2.35f), new Vector3(0.45f, 0.55f, 0.45f), M("Plant", new Color(0.18f, 0.35f, 0.2f), 0.1f));
             P(PrimitiveType.Cylinder, "Extinguisher", c, new Vector3(-(h - 0.09f), 0.45f, -13.6f), new Vector3(0.14f, 0.25f, 0.14f), M("Extinguisher", new Color(0.75f, 0.08f, 0.06f), 0.5f));
-            // lost property at the far end
-            var lp = Cb("LostProperty", c, new Vector3(-0.35f, 0.15f, CorridorLayout.EndZ + 0.25f), new Vector3(0.45f, 0.3f, 0.35f), M("Box", new Color(0.62f, 0.48f, 0.3f), 0.15f), true);
-            T("LostPropertyLabel", c, new Vector3(-0.35f, 0.18f, CorridorLayout.EndZ + 0.426f), new Vector3(0, YawS, 0), "LOST PROPERTY\n<size=60%>0391: one watch, still running</size>", 0.03f, new Vector2(0.43f, 0.2f), Ink);
+            // lost property by the hall door, out of the doorway
+            var lp = Cb("LostProperty", c, new Vector3(-0.5f, 0.15f, -13.3f), new Vector3(0.45f, 0.3f, 0.35f), M("Box", new Color(0.62f, 0.48f, 0.3f), 0.15f), true);
+            T("LostPropertyLabel", c, new Vector3(-0.5f, 0.18f, -13.124f), new Vector3(0, YawS, 0), "LOST PROPERTY\n<size=60%>0391: one watch, still running</size>", 0.03f, new Vector2(0.43f, 0.2f), Ink);
 
             // Room 5: where disagreements go
             {
@@ -668,7 +720,7 @@ I agree.
                 Folder(c, new Vector3(CorridorLayout.CenterX(8), 0.485f, CorridorLayout.DoorZ(8)), 90f, @"<b>FOR 0418</b>
 Thank you for your cooperation.
 Please remain seated.");
-                var watch = Grabbable(P(PrimitiveType.Cylinder, "Watch", c, new Vector3(-0.35f, 0.31f, CorridorLayout.EndZ + 0.25f), new Vector3(0.05f, 0.006f, 0.05f), M("Metal", G(0.55f), 0.7f), true), 0.05f);
+                var watch = Grabbable(P(PrimitiveType.Cylinder, "Watch", c, new Vector3(-0.5f, 0.31f, -13.3f), new Vector3(0.05f, 0.006f, 0.05f), M("Metal", G(0.55f), 0.7f), true), 0.05f);
                 T("WatchFace", watch.transform, new Vector3(0, 1.05f, 0), new Vector3(90, 0, 0), "0391", 0.35f, new Vector2(1f, 1f), Ink);
             }
         }

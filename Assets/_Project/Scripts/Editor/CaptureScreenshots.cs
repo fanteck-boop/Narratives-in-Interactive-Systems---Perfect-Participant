@@ -27,6 +27,7 @@ namespace PerfectParticipant.Editor
             new Shot("11_room3_archive", new Vector3(1.2f, 1.6f, -4.9f), new Vector3(3.4f, 1.0f, -2.6f)),
             new Shot("12_room6_observers", new Vector3(-1.2f, 1.6f, -10.4f), new Vector3(-3.0f, 0.9f, -8.6f)),
             new Shot("10_under_table", new Vector3(0.4f, 0.5f, 0.35f), new Vector3(1.15f, 0.84f, 0.35f)), // desk crouch eye height
+            new Shot("13_hall", new Vector3(5.5f, 2.6f, -15f), new Vector3(-1f, 1.6f, -27f)),
         };
 
         [MenuItem("Perfect Participant/Capture Screenshots")]

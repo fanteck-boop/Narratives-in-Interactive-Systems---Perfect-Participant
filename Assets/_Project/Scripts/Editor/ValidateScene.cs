@@ -14,7 +14,7 @@ namespace PerfectParticipant.Editor
         {
             "Spawn", "XROrigin", "IntakeMark", "DoorHinge", "WindowBlinds", "LED_Tray", "LED_Console", "LED_Door", "LED_Camera", "LED_Clipboard", "RoomLight_Ceiling", "MarkZone", "ObservationWindow", "Silhouette_01", "Silhouette_02", "Silhouette_03",
             "WallTally", "CorkBoard", "Console", "ConsentButton", "ConsentForm", "ButtonZone", "Table", "TableZone", "Cube", "Tray", "TrayZone",
-            "WallSouthL", "Corridor", "CorridorDoor_2", "CorridorDoor_3", "CorridorDoor_4", "CorridorDoor_5", "CorridorDoor_6", "CorridorDoor_7", "CorridorDoor_8",
+            "WallSouthL", "Corridor", "CorridorDoor_2", "CorridorDoor_3", "CorridorDoor_4", "CorridorDoor_5", "CorridorDoor_6", "CorridorDoor_7", "CorridorDoor_8", "CorridorDoor_9", "Hall", "HallTitle",
             "Leaf_2", "Leaf_8", "ShelfZone", "Box", "Room4Screen", "RoomButton_5", "RoomButton_7", "Room8Chair", "Key", "Door", "DoorHandle", "DoorZone", "CardDisplay", "ClipboardShelf", "Clipboard", "Chair", "SpeakerGrille", "CeilingCamera", "TapeMarks",
             "Systems", "ExperimentRunner", "InputSampler", "DialogueManager", "RoomStateController", "TallyWall", "SessionLogger", "DebugPanel", "SeatedMode",
         };
