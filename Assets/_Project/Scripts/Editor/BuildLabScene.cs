@@ -527,7 +527,7 @@ namespace PerfectParticipant.Editor
                         // Madeleine effect (brief 17.4): earlier participants' boxes already on the shelf, the free end is yours
                         for (int k = 0; k < 2; k++)
                         {
-                            var old = Cb("PastBox", r, onBack(1.215f, 0.17f) + new Vector3(0, 0, -0.45f + 0.24f * k), Vector3.one * 0.2f, M("Box", new Color(0.62f, 0.48f, 0.3f), 0.15f), true);
+                            var old = Grabbable(Cb("PastBox", r, onBack(1.215f, 0.17f) + new Vector3(0, 0, -0.45f + 0.24f * k), Vector3.one * 0.2f, M("Box", new Color(0.62f, 0.48f, 0.3f), 0.15f), true), 0.5f);
                             T("PastBoxLabel", old.transform, new Vector3(0, 0, 0.51f), new Vector3(0, 180, 0), "041" + (5 + k), 0.12f, new Vector2(0.9f, 0.3f), Ink);
                             old.transform.rotation = Quaternion.Euler(0, yaw, 0);
                         }
@@ -537,7 +537,7 @@ namespace PerfectParticipant.Editor
                         {
                             Cb("FileShelf", r, onBack(0.5f + 0.6f * row, 0.2f), new Vector3(0.35f, 0.03f, 2.4f), wood, true);
                             for (int k = 0; k < 10; k++)
-                                Cb("FileBox", r, onBack(0.64f + 0.6f * row, 0.2f) + new Vector3(0, 0, -1.1f + 0.24f * k), new Vector3(0.3f, 0.25f, 0.18f), paper);
+                                { var fb = Grabbable(Cb("FileBox", r, onBack(0.64f + 0.6f * row, 0.2f) + new Vector3(0, 0, -1.1f + 0.24f * k), new Vector3(0.18f, 0.25f, 0.3f), paper, true), 0.4f); fb.transform.rotation = Quaternion.Euler(0, yaw, 0); int lo = (row * 10 + k) * 14 + 1; T("FileBoxLabel", fb.transform, new Vector3(0, 0.1f, 0.51f), new Vector3(0, 180, 0), lo.ToString("0000") + "-" + Mathf.Min(lo + 13, 416).ToString("0000"), 0.09f, new Vector2(0.95f, 0.3f), Ink); }
                         }
                         T("FilesLabel", r, onBack(2.1f, 0.01f), new Vector3(0, yaw + 180f, 0), "PARTICIPANTS 0001 - 0416", 0.06f, new Vector2(2.4f, 0.12f), Ink);
                         ArchiveLore(r, cx, cz, side, yaw, paper, wood);
@@ -650,6 +650,26 @@ namespace PerfectParticipant.Editor
 
         // ---------- easter eggs behind the keycard doors (lore for the player who looks; epistemic immersion, brief 17.4) ----------
 
+        // Lore props the player can pick up, turn and read (desk E or XR grab). Kinematic until first released, then
+        // GrabTracker lets them fall. GrabKind.Other is only read by Tests 1-3; these rooms are reached in Test 4.
+        static GameObject Grabbable(GameObject g, float mass)
+        {
+            var rb = g.AddComponent<Rigidbody>();
+            rb.isKinematic = true; rb.mass = mass; rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
+            g.AddComponent<XRGrabInteractable>().movementType = XRBaseInteractable.MovementType.VelocityTracking;
+            g.AddComponent<GrabTracker>().kind = GrabKind.Other;
+            return g;
+        }
+
+        // A loose folder with a typed note on its cover.
+        static void Folder(Transform r, Vector3 pos, float yaw, string text)
+        {
+            var f = Grabbable(Cb("LoreFolder", r, pos, new Vector3(0.23f, 0.012f, 0.31f), M("Folder", new Color(0.85f, 0.75f, 0.5f), 0.1f), true), 0.2f);
+            f.transform.rotation = Quaternion.Euler(0, yaw, 0);
+            Qd("FolderSheet", f.transform, new Vector3(0, 0.55f, 0), new Vector2(0.9f, 0.9f), M("Paper", G(0.88f), 0.05f), new Vector3(90, 0, 0));
+            T("FolderText", f.transform, new Vector3(0, 0.6f, 0), new Vector3(90, 0, 0), text, 0.055f, new Vector2(0.85f, 0.85f), Ink, TextAlignmentOptions.TopLeft);
+        }
+
         static readonly string[] ObserverNotes =
         {
             "0417\n- polite\n- responds to praise\n- watch the hands",
@@ -662,7 +682,7 @@ namespace PerfectParticipant.Editor
         {
             var face = new Vector3(0, yaw, 0); // faces the door (local +Z = corridor)
             // the player's own file, pulled out and waiting on the floor
-            var mine = Cb("File_0417", r, new Vector3(cx, 0.125f, cz + 0.6f), new Vector3(0.3f, 0.25f, 0.18f), paper, true);
+            var mine = Grabbable(Cb("File_0417", r, new Vector3(cx, 0.125f, cz + 0.6f), new Vector3(0.3f, 0.25f, 0.18f), paper, true), 0.4f);
             mine.transform.rotation = Quaternion.Euler(face);
             T("File_0417_Label", mine.transform, new Vector3(0, 0.12f, 0.51f), new Vector3(0, 180, 0),
                 "<b>0417</b>\n<size=45%>PREDICTED RESULT:\nAS EXPECTED\n(filed before arrival)</size>", 0.16f, new Vector2(0.95f, 0.9f), Ink);
@@ -679,6 +699,11 @@ namespace PerfectParticipant.Editor
             Qd("File_0203", r, desk + new Vector3(0, 0.752f, 0), new Vector2(0.3f, 0.21f), paper, new Vector3(90, yaw + 180f, 0));
             T("File_0203_Text", r, desk + new Vector3(0, 0.754f, 0), new Vector3(90, yaw + 180f, 0),
                 "<b>PARTICIPANT 0203</b>\nTest 3: no response (90 s)\nRESULT: NONE\nFollow-up: none possible.", 0.016f, new Vector2(0.28f, 0.2f), Ink, TextAlignmentOptions.TopLeft);
+            // loose folders: every deviation already had its reframe (the narrator's method, on paper)
+            Folder(r, desk + new Vector3(-0.25f, 0.762f, 0.08f), yaw + 170f, "<b>0112</b>\nTried the door 41 times.\nRecorded as: persistence.");
+            Folder(r, desk + new Vector3(0.22f, 0.762f, -0.05f), yaw + 195f, "<b>0288</b>\nThrew the cube through the window.\nWindow replaced.\nRecorded as: enthusiasm.");
+            Folder(r, new Vector3(cx + side * 0.5f, 0.006f, cz + 0.2f), yaw + 120f, "<b>0391</b>\nLeft a watch.\nAsked for it back.\nRequest filed.");
+            Folder(r, new Vector3(cx - side * 0.3f, 0.006f, cz - 0.3f), yaw + 80f, "<b>MEMO</b>\nNarrator warmth must not drop below 60%.\nIf it does, re-record.\n<size=70%>- Facility</size>");
 
             // the narrator's script on a lectern: the voice is a person reading lines
             var lect = new Vector3(cx - side * 0.9f, 0, cz - 0.9f);
@@ -700,6 +725,8 @@ namespace PerfectParticipant.Editor
             var cup = M("Cup", G(0.9f), 0.5f);
             for (int k = 0; k < 2; k++)
                 P(PrimitiveType.Cylinder, "Cup", r, desk + new Vector3(-0.3f + 0.55f * k, 0.8f, -0.1f), new Vector3(0.08f, 0.05f, 0.08f), cup);
+            // the observers were participants once
+            Folder(r, desk + new Vector3(0.05f, 0.762f, -0.12f), 10f, "<b>0416</b>\nPerfect participant.\nReassigned to Room 6.\n<size=70%>Start date: tomorrow.</size>");
         }
 
         // Pedestal with a labelled cap at the room centre; a grab attempt on it = RoomButton n (same desk/XR path as the doors).
