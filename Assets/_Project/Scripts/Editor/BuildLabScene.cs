@@ -45,7 +45,7 @@ namespace PerfectParticipant.Editor
             RenderSettings.ambientMode = AmbientMode.Flat;
             RenderSettings.ambientLight = new Color(0.45f, 0.44f, 0.42f); // gamma value; 0.2 is ~0.03 linear and rendered near black
 
-            Shell(); LabDetails(); Window(); Tally(); Cork(); ConsoleObj(); TableObj(); DoorObj(); Corridor(); Shelf(); ChairObj();
+            Shell(); LabDetails(); Window(); Tally(); Cork(); ConsoleObj(); TableObj(); DoorObj(); Corridor(); Shelf(); ChairObj(); MoreLore();
             CeilingProps(); Tape(); Lights(); Rig(); Systems();
             AutoWire();
             var tso = new SerializedObject(Object.FindFirstObjectByType<TallyWall>()); // chart already has row labels
@@ -578,6 +578,73 @@ namespace PerfectParticipant.Editor
                         T("SeatTagText", c8, new Vector3(0, 0.85f, -0.186f), new Vector3(0, 180, 0), "RESERVED 0418", 0.035f, new Vector2(0.19f, 0.07f), Ink);
                         break;
                 }
+            }
+        }
+
+        // ---------- traces of earlier participants and corridor dressing (Madeleine effect, spatial immersion, brief 17.4) ----------
+        static void MoreLore()
+        {
+            var paper = M("Paper", G(0.88f), 0.05f); var tape = M("Tape", new Color(0.72f, 0.66f, 0.4f), 0.05f);
+            var note = M("StickyNote", new Color(0.98f, 0.9f, 0.35f), 0.05f); var wood = M("Table", new Color(0.45f, 0.36f, 0.27f), 0.2f);
+
+            // lab: a note under the chair seat (crouch to see it) and a scratch behind the console
+            var chair = GameObject.Find("Chair").transform;
+            Qd("UnderSeatNote", chair, new Vector3(0, 0.424f, 0), new Vector2(0.09f, 0.09f), note, new Vector3(-90, 0, 0));
+            T("UnderSeatNoteText", chair, new Vector3(0, 0.423f, 0), new Vector3(-90, 0, 0), "Don't press it.\n<size=70%>- 0203</size>", 0.014f, new Vector2(0.085f, 0.085f), Ink);
+            var console = GameObject.Find("Console").transform;
+            T("ConsoleScratch", console, new Vector3(-0.302f, 0.35f, 0.05f), new Vector3(0, YawE, -4), "0203 WAS HERE", 0.03f, new Vector2(0.4f, 0.06f), G(0.55f));
+
+            float h = CorridorLayout.CorridorHalf, w = CorridorLayout.Wall, slot = CorridorLayout.SlotLen, depth = CorridorLayout.RoomDepth;
+            var c = GameObject.Find("Corridor").transform;
+
+            // floor tape steering the route: arrows at 2, 4, 7, 8 point at the door, crosses at the forbidden 3 and 6
+            for (int n = CorridorLayout.First; n <= CorridorLayout.Last; n++)
+            {
+                int side = CorridorLayout.Side(n);
+                var at = new Vector3(side * 0.3f, 0.003f, CorridorLayout.DoorZ(n));
+                bool onRoute = System.Array.IndexOf(CorridorLayout.Order, n) >= 0;
+                if (CorridorLayout.Forbidden(n))
+                    foreach (float a in new[] { 45f, -45f })
+                        Qd("FloorCross", c, at, new Vector2(0.3f, 0.04f), tape, new Vector3(90, a, 0));
+                else if (onRoute)
+                {
+                    float yaw = side < 0 ? -90f : 90f; // shaft along X toward the door
+                    Qd("FloorArrow", c, at, new Vector2(0.04f, 0.32f), tape, new Vector3(90, yaw, 0));
+                    var tip = at + new Vector3(side * 0.16f, 0, 0);
+                    foreach (float a in new[] { 45f, -45f })
+                        Qd("FloorArrowHead", c, tip - new Vector3(side * 0.05f, 0, a > 0 ? 0.05f : -0.05f), new Vector2(0.04f, 0.15f), tape, new Vector3(90, yaw + a, 0));
+                }
+            }
+
+            // corridor dressing: bench under the notices, a plant by the lab door, an extinguisher near the end
+            float lx = h - 0.25f;
+            Cb("BenchSeat", c, new Vector3(lx, 0.45f, -12.65f), new Vector3(0.4f, 0.05f, 1.4f), wood, true);
+            foreach (float bz in new[] { -12.05f, -13.25f }) Cb("BenchLeg", c, new Vector3(lx, 0.22f, bz), new Vector3(0.36f, 0.44f, 0.05f), M("Metal", G(0.55f), 0.7f), true);
+            P(PrimitiveType.Cylinder, "PlantPot", c, new Vector3(-0.6f, 0.2f, -2.35f), new Vector3(0.3f, 0.2f, 0.3f), M("Pot", new Color(0.35f, 0.3f, 0.28f), 0.2f), true);
+            P(PrimitiveType.Sphere, "Plant", c, new Vector3(-0.6f, 0.62f, -2.35f), new Vector3(0.45f, 0.55f, 0.45f), M("Plant", new Color(0.18f, 0.35f, 0.2f), 0.1f));
+            P(PrimitiveType.Cylinder, "Extinguisher", c, new Vector3(-(h - 0.09f), 0.45f, -13.6f), new Vector3(0.14f, 0.25f, 0.14f), M("Extinguisher", new Color(0.75f, 0.08f, 0.06f), 0.5f));
+            // lost property at the far end
+            var lp = Cb("LostProperty", c, new Vector3(-0.35f, 0.15f, CorridorLayout.EndZ + 0.25f), new Vector3(0.45f, 0.3f, 0.35f), M("Box", new Color(0.62f, 0.48f, 0.3f), 0.15f), true);
+            T("LostPropertyLabel", c, new Vector3(-0.35f, 0.18f, CorridorLayout.EndZ + 0.426f), new Vector3(0, YawS, 0), "LOST PROPERTY\n<size=60%>0391: one watch, still running</size>", 0.03f, new Vector2(0.43f, 0.2f), Ink);
+
+            // Room 5: where disagreements go
+            {
+                int n = 5, side = CorridorLayout.Side(n);
+                float back = side * (h + w + depth), cz = CorridorLayout.DoorZ(n);
+                var bin = new Vector3(back - side * 0.4f, 0, cz + 1.0f);
+                P(PrimitiveType.Cylinder, "Bin", c, bin + new Vector3(0, 0.22f, 0), new Vector3(0.32f, 0.22f, 0.32f), M("Cam", G(0.18f), 0.3f), true);
+                for (int k = 0; k < 5; k++)
+                    P(PrimitiveType.Sphere, "Crumpled", c, bin + new Vector3(0.07f * Mathf.Cos(k * 1.3f), 0.46f + 0.03f * (k % 2), 0.07f * Mathf.Sin(k * 1.3f)), Vector3.one * 0.08f, paper);
+                T("BinLabel", c, bin + new Vector3(0, 0.3f, -0.165f), Vector3.zero, "DISAGREEMENTS", 0.022f, new Vector2(0.3f, 0.05f), G(0.85f));
+            }
+
+            // Room 8: the one before you
+            {
+                int n = 8;
+                float cx = CorridorLayout.CenterX(n), nz = CorridorLayout.DoorZ(n) + slot * 0.5f - w - 0.005f;
+                Qd("PhotoFrame", c, new Vector3(cx, 1.6f, nz), new Vector2(0.5f, 0.62f), M("Trim", G(0.12f)));
+                Qd("Photo", c, new Vector3(cx, 1.63f, nz - 0.002f), new Vector2(0.42f, 0.42f), M("Dark", G(0.05f), 0.05f));
+                T("PhotoCaption", c, new Vector3(cx, 1.36f, nz - 0.003f), Vector3.zero, "PARTICIPANT OF THE MONTH\n<b>0416</b>", 0.025f, new Vector2(0.46f, 0.08f), G(0.9f));
             }
         }
 
