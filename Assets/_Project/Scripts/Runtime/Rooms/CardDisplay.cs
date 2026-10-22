@@ -16,7 +16,7 @@ namespace PerfectParticipant
         [SerializeField] TMP_Text title, sub;       // auto: "CardTitle" / "CardSubtitle", else created on the Door's inside face
         [SerializeField] bool showContentNote = true;
         [SerializeField, TextArea(3, 8)] string note =
-            "Content note\n\nThis experience contains spoken narration and sudden sounds. It takes about ten minutes. " +
+            "Content note\n\nThis experience contains spoken narration, sudden sounds and brief images of blood. It takes about ten minutes. " +
             "You may remove the headset at any time.\n\nPress the trigger to begin.\nSeated? Press A or X (T on keyboard).";
         [SerializeField] float endHold = 12f, fadeSeconds = 3f;
 

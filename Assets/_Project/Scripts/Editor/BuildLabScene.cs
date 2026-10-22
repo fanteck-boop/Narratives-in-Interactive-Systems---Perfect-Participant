@@ -724,6 +724,17 @@ Please remain seated.");
             Qd("File_0203", r, desk + new Vector3(0, 0.752f, 0), new Vector2(0.3f, 0.21f), paper, new Vector3(90, yaw + 180f, 0));
             T("File_0203_Text", r, desk + new Vector3(0, 0.754f, 0), new Vector3(90, yaw + 180f, 0),
                 "<b>PARTICIPANT 0203</b>\nTest 3: no response (90 s)\nRESULT: NONE\nFollow-up: none possible.", 0.016f, new Vector2(0.28f, 0.2f), Ink, TextAlignmentOptions.TopLeft);
+            // 0203 did not go quietly: dried blood on the file, a trail toward the door, and a scrawl low on the south wall
+            // (the counter-voice to "Participation is voluntary"; named in the content note, brief 17.7)
+            var blood = M("DriedBlood", new Color(0.28f, 0.02f, 0.02f), 0.35f);
+            float[] dx = { -0.06f, 0.03f, 0.08f, -0.02f }, dz = { 0.04f, -0.05f, 0.02f, 0.07f };
+            for (int k = 0; k < dx.Length; k++)
+                P(PrimitiveType.Sphere, "BloodDrop", r, desk + new Vector3(dx[k], 0.754f, dz[k]), new Vector3(0.012f + 0.006f * (k % 2), 0.002f, 0.012f + 0.004f * k), blood);
+            for (int k = 0; k < 6; k++) // floor trail from the desk toward the door (-side is the corridor)
+                P(PrimitiveType.Sphere, "BloodDrop", r, desk + new Vector3(-side * (0.35f + 0.28f * k), 0.002f, 0.12f * Mathf.Sin(k * 1.7f)), new Vector3(0.02f + 0.006f * (k % 3), 0.002f, 0.018f), blood);
+            float sz = cz - CorridorLayout.SlotLen * 0.5f + CorridorLayout.Wall + 0.005f; // south inner wall face, faces +Z
+            T("Scrawl", r, new Vector3(cx + side * 0.6f, 0.35f, sz), new Vector3(0, 180, 6), "IT IS NOT\nVOLUNTARY", 0.07f, new Vector2(0.8f, 0.25f), new Color(0.45f, 0.04f, 0.03f));
+
             // loose folders: every deviation already had its reframe (the narrator's method, on paper)
             Folder(r, desk + new Vector3(-0.25f, 0.762f, 0.08f), yaw + 170f, "<b>0112</b>\nTried the door 41 times.\nRecorded as: persistence.");
             Folder(r, desk + new Vector3(0.22f, 0.762f, -0.05f), yaw + 195f, "<b>0288</b>\nThrew the cube through the window.\nWindow replaced.\nRecorded as: enthusiasm.");
