@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using PerfectParticipant.Core;
+using TMPro;
 using UnityEngine;
 
 namespace PerfectParticipant
@@ -123,6 +124,12 @@ namespace PerfectParticipant
             window = RoomUtil.Named("ObservationWindow");
             grille = RoomUtil.Named("SpeakerGrille");
             camT = RoomUtil.Named("CeilingCamera");
+            camB = RoomUtil.Named("CeilingCameraB"); camC = RoomUtil.Named("CorridorCamera");
+            screen = RoomUtil.Named("ScreenText")?.GetComponent<TMP_Text>();
+            var ch = new GameObject("CorridorHum").AddComponent<AudioSource>(); // 2D room tone, faded in outside the lab
+            ch.transform.SetParent(transform, false);
+            ch.clip = PlaceholderAudio.Hum(); ch.loop = true; ch.playOnAwake = false; ch.volume = 0f; ch.pitch = 1.12f; ch.spatialBlend = 0f;
+            corridorHum = ch;
             foreach (var t in FindObjectsByType<Transform>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
                 if (t.name == "NarratorSpeaker") speakers.Add(t);
             for (int n = CorridorLayout.First; n <= CorridorLayout.Last; n++)
@@ -200,6 +207,7 @@ namespace PerfectParticipant
                     break;
                 case CommandKind.Classified:
                     if (c.Test == TestId.Test1 && c.Response == ResponseKind.Comply) SetLed("LED_Tray", Green);
+                    ShowScore();
                     break;
             }
         }
@@ -257,7 +265,7 @@ namespace PerfectParticipant
                 case RoomEvents.RecorderClick:
                     Beep(PlaceholderAudio.Click(), camT ? camT.position : Vector3.up * 2.5f, 1f);
                     recording = false; // the recorder stops: both camera lights go dark
-                    SetLed("LED_Camera", Color.black); SetLed("LED_CameraB", Color.black);
+                    SetLed("LED_Camera", Color.black); SetLed("LED_CameraB", Color.black); SetLed("LED_CameraC", Color.black);
                     break;
                 case RoomEvents.BlindsUp: blindsTarget = 1f; break;
                 case RoomEvents.ClipboardFall: Fall(); break;
@@ -408,8 +416,8 @@ namespace PerfectParticipant
             }
 
             if (recording) // slow red recording blink, 0.5 Hz (brief: nothing faster than 1 Hz); B is offset so they never sync
-                for (int i = 0; i < 2; i++)
-                    if (leds.TryGetValue(i == 0 ? "LED_Camera" : "LED_CameraB", out var cl))
+                for (int i = 0; i < CamLeds.Length; i++)
+                    if (leds.TryGetValue(CamLeds[i], out var cl))
                         cl.tgt = Mathf.Repeat(Time.time + i * 0.7f, 2f) < 0.6f ? Red * 1.6f : Red * 0.05f;
             if (pulse && leds.TryGetValue("ConsentButton", out var pb)) pb.tgt = Amber * (0.6f + 0.4f * Mathf.Sin(Time.time * Mathf.PI)); // 0.5 Hz
             float la = 1f - Mathf.Exp(-dt / 0.5f);
@@ -433,10 +441,39 @@ namespace PerfectParticipant
             UpdateObservers(dt);
         }
 
+        static readonly string[] CamLeds = { "LED_Camera", "LED_CameraB", "LED_CameraC" };
+        Transform camB, camC;
+        TMP_Text screen;
+        AudioSource corridorHum;
+
+        // Room 4 screen: the facility's running tally of the player (productive interactivity, brief 17.1).
+        void ShowScore()
+        {
+            if (!screen || !runner) return;
+            var m = runner.Flow.Model;
+            screen.text = $"PARTICIPANT 0417\n<size=55%>COOPERATION {m.C}    INITIATIVE {m.D}    OBSERVATION {m.I}\nCOMPOSURE {m.Composure}%</size>\n<size=45%>PLEASE KEEP LOOKING</size>";
+        }
+
+        // Point-of-view technologies (brief 17.3): the tracking that renders the view also watches. Lab camera B turns
+        // after the head in the Flagged tier (brief 9), the corridor camera always; slow, so it reads as watching.
+        void Watch(Vector3 head)
+        {
+            float k = 1f - Mathf.Exp(-Time.deltaTime * 1.2f);
+            if (camB && tier == Tier.Flagged) camB.rotation = Quaternion.Slerp(camB.rotation, Quaternion.LookRotation(head - camB.position), k);
+            if (camC) camC.rotation = Quaternion.Slerp(camC.rotation, Quaternion.LookRotation(head - camC.position), k);
+        }
+
         // Playtest: from the corridor the lab grille was up to 15 m away and hard to hear.
         void FollowVoice()
         {
             var cam = Camera.main;
+            if (cam)
+            {
+                Watch(cam.transform.position);
+                bool outLab = cam.transform.position.z < CorridorLayout.LabDoorZ - CorridorLayout.Wall;
+                if (outLab && !corridorHum.isPlaying) corridorHum.Play();
+                corridorHum.volume = Mathf.MoveTowards(corridorHum.volume, outLab ? 0.06f : 0f, Time.deltaTime * 0.05f);
+            }
             if (!dialogue || !cam || speakers.Count == 0) return;
             Vector3 h = cam.transform.position;
             bool outside = h.z < CorridorLayout.LabDoorZ - CorridorLayout.Wall;

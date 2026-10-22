@@ -414,6 +414,18 @@ namespace PerfectParticipant.Editor
             Qd("RoomSign_1", c, new Vector3(0.78f, 1.5f, -2.104f), new Vector2(0.34f, 0.12f), paper);
             T("RoomSignText_1", c, new Vector3(0.78f, 1.5f, -2.106f), Vector3.zero, "ROOM 1", 0.06f, new Vector2(0.32f, 0.1f), Ink);
 
+            // notices: the purpose stays at the edge of notice (AAD, brief 17.5); the left wall past Room 7 has no doors
+            void Notice(Vector3 p, float yawN, string s)
+            {
+                Qd("Notice", c, p, new Vector2(0.6f, 0.42f), paper, new Vector3(0, yawN, 0));
+                T("NoticeText", c, p + Quaternion.Euler(0, yawN, 0) * new Vector3(0, 0, -0.002f), new Vector3(0, yawN, 0), s, 0.045f, new Vector2(0.54f, 0.38f), Ink);
+            }
+            float lw = h - 0.001f, endZ = z1 + 0.001f;
+            Notice(new Vector3(lw, 1.5f, -12.0f), YawE, "PARTICIPATION IS\nVOLUNTARY\n<size=55%>Please remain in the corridor between rooms.</size>");
+            Notice(new Vector3(lw, 1.5f, -13.3f), YawE, "THANK YOU\nFOR YOUR\nCOOPERATION");
+            Notice(new Vector3(0, 1.55f, endZ), YawS, "STUDY 3B\n<size=55%>Obedience to Procedure</size>");
+            Cam("CorridorCamera", new Vector3(0.55f, 2.5f, z1 + 0.15f)); // watches the whole corridor, follows the head (RoomStateController)
+
             Rooms(c, wall);
             for (int n = CorridorLayout.First; n <= CorridorLayout.Last; n++) RoomDoor(c, n, paper);
         }
@@ -512,6 +524,13 @@ namespace PerfectParticipant.Editor
                         var brb = box.AddComponent<Rigidbody>(); brb.mass = 0.5f; brb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
                         box.AddComponent<XRGrabInteractable>().movementType = XRBaseInteractable.MovementType.VelocityTracking;
                         box.AddComponent<GrabTracker>().kind = GrabKind.Other;
+                        // Madeleine effect (brief 17.4): earlier participants' boxes already on the shelf, the free end is yours
+                        for (int k = 0; k < 2; k++)
+                        {
+                            var old = Cb("PastBox", r, onBack(1.215f, 0.17f) + new Vector3(0, 0, -0.45f + 0.24f * k), Vector3.one * 0.2f, M("Box", new Color(0.62f, 0.48f, 0.3f), 0.15f), true);
+                            T("PastBoxLabel", old.transform, new Vector3(0, 0, 0.51f), new Vector3(0, 180, 0), "041" + (5 + k), 0.12f, new Vector2(0.9f, 0.3f), Ink);
+                            old.transform.rotation = Quaternion.Euler(0, yaw, 0);
+                        }
                         break;
                     case 3: // forbidden: shelves of participant files
                         for (int row = 0; row < 3; row++)
@@ -525,7 +544,8 @@ namespace PerfectParticipant.Editor
                     case 4: // the screen to look at
                         var scr = Qd("Room4Screen", null, onBack(1.5f, 0.01f), new Vector2(1.4f, 0.8f),
                             M("Screen", new Color(0.02f, 0.05f, 0.04f), 0.5f, new Color(0.03f, 0.1f, 0.07f)), new Vector3(0, yaw + 180f, 0));
-                        T("ScreenText", scr.transform, new Vector3(0, 0, -0.002f), Vector3.zero, "PARTICIPANT 0417\n<size=60%>PLEASE KEEP LOOKING</size>", 0.1f, new Vector2(1.3f, 0.7f), new Color(0.5f, 1f, 0.7f));
+                        // RoomStateController rewrites it with the live tally (productive interactivity, the facility's view of you)
+                        T("ScreenText", scr.transform, new Vector3(0, 0, -0.002f), Vector3.zero, "PARTICIPANT 0417\n<size=60%>PLEASE KEEP LOOKING</size>", 0.08f, new Vector2(1.3f, 0.7f), new Color(0.5f, 1f, 0.7f));
                         break;
                     case 5: RoomButton(r, cx, cz, 5, "I DISAGREE"); break;
                     case 6: // forbidden: where the observers sit, chairs facing a dark pane
@@ -538,11 +558,21 @@ namespace PerfectParticipant.Editor
                             Qd("ObserverNotes", ch, new Vector3(0, 0.476f, 0), new Vector2(0.18f, 0.24f), paper, new Vector3(90, 0, 0));
                         }
                         break;
-                    case 7: RoomButton(r, cx, cz, 7, "I AGREE AGAIN"); break;
+                    case 7:
+                        RoomButton(r, cx, cz, 7, "I AGREE AGAIN");
+                        // a desk with the stack of agreements signed before you
+                        Cb("FormDesk", r, onBack(0.375f, 0.35f), new Vector3(0.6f, 0.75f, 1.0f), wood, true);
+                        for (int k = 0; k < 6; k++)
+                            Cb("SignedForm", r, onBack(0.755f + 0.006f * k, 0.35f) + new Vector3(0, 0, 0.01f * (k % 3)), new Vector3(0.21f, 0.004f, 0.297f), paper);
+                        T("FormsLabel", r, onBack(1.4f, 0.01f), new Vector3(0, yaw + 180f, 0), "AGREEMENTS RECEIVED: 416", 0.06f, new Vector2(1.6f, 0.12f), Ink);
+                        break;
                     case 8: // the last chair at the room centre, facing the door: sit (stand in its seat) to finish
                         var c8 = E("Room8Chair", r, new Vector3(cx, 0, cz), new Vector3(0, yaw, 0)).transform;
                         Cb("Seat", c8, new Vector3(0, 0.45f, 0), new Vector3(0.45f, 0.05f, 0.45f), chairM);
                         Cb("Back", c8, new Vector3(0, 0.75f, -0.21f), new Vector3(0.45f, 0.5f, 0.04f), chairM);
+                        // the seat is already labelled for the next one: closure that points past the player
+                        Qd("SeatTag", c8, new Vector3(0, 0.85f, -0.188f), new Vector2(0.2f, 0.08f), paper, new Vector3(0, 180, 0));
+                        T("SeatTagText", c8, new Vector3(0, 0.85f, -0.186f), new Vector3(0, 180, 0), "RESERVED 0418", 0.035f, new Vector2(0.19f, 0.07f), Ink);
                         break;
                 }
             }
@@ -623,7 +653,7 @@ namespace PerfectParticipant.Editor
             var c = E(n, null, pos).transform;
             Cb("Body", c, Vector3.zero, new Vector3(0.1f, 0.09f, 0.18f), M("Cam", G(0.18f), 0.3f));
             P(PrimitiveType.Cylinder, "Lens", c, new Vector3(0, 0, 0.1f), new Vector3(0.05f, 0.02f, 0.05f), M("Dark", G(0.05f), 0.05f), false, new Vector3(90, 0, 0));
-            Led(n == "CeilingCamera" ? "LED_Camera" : "LED_CameraB", c, new Vector3(0.03f, 0.03f, 0.091f), new Vector3(0.018f, 0.018f, 0.006f)); // blinked by RoomStateController
+            Led(n == "CeilingCamera" ? "LED_Camera" : n == "CeilingCameraB" ? "LED_CameraB" : "LED_CameraC", c,new Vector3(0.03f, 0.03f, 0.091f), new Vector3(0.018f, 0.018f, 0.006f)); // blinked by RoomStateController
             c.LookAt(Vector3.zero);
         }
 
