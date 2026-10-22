@@ -17,7 +17,7 @@ namespace PerfectParticipant
         [SerializeField] bool showContentNote = true;
         [SerializeField, TextArea(3, 8)] string note =
             "Content note\n\nThis experience contains spoken narration and sudden sounds. It takes about ten minutes. " +
-            "You may remove the headset at any time.\n\nPress the trigger to begin.\nSeated? Press A or X (S on keyboard).";
+            "You may remove the headset at any time.\n\nPress the trigger to begin.\nSeated? Press A or X (T on keyboard).";
         [SerializeField] float endHold = 12f, fadeSeconds = 3f;
 
         TMP_Text blackText;
@@ -65,7 +65,7 @@ namespace PerfectParticipant
         void SeatPressed()
         {
             var k = Keyboard.current;
-            bool hit = k != null && k.sKey.wasPressedThisFrame;
+            bool hit = k != null && k.tKey.wasPressedThisFrame; // not S: S walks back, and toggling seated moved the furniture into the doorway (playtest)
             foreach (var p in Seat) if (InputSystem.FindControl(p) is ButtonControl b && b.wasPressedThisFrame) hit = true;
             var s = hit ? FindFirstObjectByType<SeatedMode>() : null;
             if (!s) return;
