@@ -540,6 +540,7 @@ namespace PerfectParticipant.Editor
                                 Cb("FileBox", r, onBack(0.64f + 0.6f * row, 0.2f) + new Vector3(0, 0, -1.1f + 0.24f * k), new Vector3(0.3f, 0.25f, 0.18f), paper);
                         }
                         T("FilesLabel", r, onBack(2.1f, 0.01f), new Vector3(0, yaw + 180f, 0), "PARTICIPANTS 0001 - 0416", 0.06f, new Vector2(2.4f, 0.12f), Ink);
+                        ArchiveLore(r, cx, cz, side, yaw, paper, wood);
                         break;
                     case 4: // the screen to look at
                         var scr = Qd("Room4Screen", null, onBack(1.5f, 0.01f), new Vector2(1.4f, 0.8f),
@@ -556,7 +557,9 @@ namespace PerfectParticipant.Editor
                             Cb("Seat", ch, new Vector3(0, 0.45f, 0), new Vector3(0.38f, 0.05f, 0.38f), chairM, true);
                             Cb("Back", ch, new Vector3(0, 0.72f, -0.17f), new Vector3(0.38f, 0.45f, 0.04f), chairM, true);
                             Qd("ObserverNotes", ch, new Vector3(0, 0.476f, 0), new Vector2(0.18f, 0.24f), paper, new Vector3(90, 0, 0));
+                            T("ObserverNoteText", ch, new Vector3(0, 0.478f, 0), new Vector3(90, 0, 0), ObserverNotes[k], 0.014f, new Vector2(0.16f, 0.22f), Ink, TextAlignmentOptions.TopLeft);
                         }
+                        ObserverLore(r, cx, cz, side, yaw, wood);
                         break;
                     case 7:
                         RoomButton(r, cx, cz, 7, "I AGREE AGAIN");
@@ -576,6 +579,60 @@ namespace PerfectParticipant.Editor
                         break;
                 }
             }
+        }
+
+        // ---------- easter eggs behind the keycard doors (lore for the player who looks; epistemic immersion, brief 17.4) ----------
+
+        static readonly string[] ObserverNotes =
+        {
+            "0417\n- polite\n- responds to praise\n- watch the hands",
+            "Do not mention the door.\n\nIf it asks about the clipboard, write it down.",
+            "If it does nothing:\nwait.\nDo not go in.\nDo not speak to it.",
+        };
+
+        // Room 3, the archive: the facility already knows the outcome.
+        static void ArchiveLore(Transform r, float cx, float cz, int side, float yaw, Material paper, Material wood)
+        {
+            var face = new Vector3(0, yaw, 0); // faces the door (local +Z = corridor)
+            // the player's own file, pulled out and waiting on the floor
+            var mine = Cb("File_0417", r, new Vector3(cx, 0.125f, cz + 0.6f), new Vector3(0.3f, 0.25f, 0.18f), paper, true);
+            mine.transform.rotation = Quaternion.Euler(face);
+            T("File_0417_Label", mine.transform, new Vector3(0, 0.12f, 0.51f), new Vector3(0, 180, 0),
+                "<b>0417</b>\n<size=45%>PREDICTED RESULT:\nAS EXPECTED\n(filed before arrival)</size>", 0.16f, new Vector2(0.95f, 0.9f), Ink);
+
+            // the score so far, chalked up on the north wall (faces -Z, into the room)
+            float nz = cz + CorridorLayout.SlotLen * 0.5f - CorridorLayout.Wall - 0.005f;
+            Qd("Whiteboard", r, new Vector3(cx, 1.45f, nz), new Vector2(1.6f, 0.9f), M("Whiteboard", G(0.95f), 0.6f));
+            T("WhiteboardText", r, new Vector3(cx, 1.45f, nz - 0.003f), Vector3.zero,
+                "RESULTS TO DATE\n<size=70%>AS EXPECTED  .....  411\nNONE  ..............  5</size>\n<size=55%>Condition C: under review</size>", 0.07f, new Vector2(1.5f, 0.85f), new Color(0.1f, 0.2f, 0.55f), TextAlignmentOptions.TopLeft);
+
+            // someone refused before: participant 0203's file lies open on a desk
+            var desk = new Vector3(cx + side * 0.6f, 0, cz - 0.9f);
+            Cb("ArchiveDesk", r, desk + new Vector3(0, 0.375f, 0), new Vector3(0.8f, 0.75f, 0.5f), wood, true);
+            Qd("File_0203", r, desk + new Vector3(0, 0.752f, 0), new Vector2(0.3f, 0.21f), paper, new Vector3(90, yaw + 180f, 0));
+            T("File_0203_Text", r, desk + new Vector3(0, 0.754f, 0), new Vector3(90, yaw + 180f, 0),
+                "<b>PARTICIPANT 0203</b>\nTest 3: no response (90 s)\nRESULT: NONE\nFollow-up: none possible.", 0.016f, new Vector2(0.28f, 0.2f), Ink, TextAlignmentOptions.TopLeft);
+
+            // the narrator's script on a lectern: the voice is a person reading lines
+            var lect = new Vector3(cx - side * 0.9f, 0, cz - 0.9f);
+            Cb("Lectern", r, lect + new Vector3(0, 0.55f, 0), new Vector3(0.35f, 1.1f, 0.35f), wood, true);
+            Qd("Script", r, lect + new Vector3(0, 1.105f, 0), new Vector2(0.21f, 0.297f), paper, new Vector3(90, yaw + 180f, 0));
+            T("ScriptText", r, lect + new Vector3(0, 1.107f, 0), new Vector3(90, yaw + 180f, 0),
+                "<b>NARRATOR SCRIPT v12</b>\n\nR-04 <i>(do not record)</i>\n\"I did not think anyone would take it literally.\"\n\nNote: stay warm. Always.", 0.012f, new Vector2(0.19f, 0.27f), Ink, TextAlignmentOptions.TopLeft);
+        }
+
+        // Room 6, where the observers sit: the lab, live, from above.
+        static void ObserverLore(Transform r, float cx, float cz, int side, float yaw, Material wood)
+        {
+            var desk = new Vector3(cx + side * 0.2f, 0, cz + 1.0f);
+            Cb("MonitorDesk", r, desk + new Vector3(0, 0.375f, 0), new Vector3(0.9f, 0.75f, 0.5f), wood, true);
+            var mon = Qd("CctvMonitor", r, desk + new Vector3(0, 1.0f, 0.05f), new Vector2(0.48f, 0.27f), M("CctvScreen", G(1f), 0.3f)); // faces -Z, into the room (desk stands at the north wall)
+            mon.AddComponent<CctvFeed>();
+            Cb("MonitorBody", r, desk + new Vector3(0, 1.0f, 0.075f), new Vector3(0.52f, 0.31f, 0.04f), M("Cam", G(0.18f), 0.3f));
+            T("CctvLabel", r, desk + new Vector3(0, 1.19f, 0.048f), Vector3.zero, "ROOM 1  -  LIVE", 0.03f, new Vector2(0.5f, 0.05f), new Color(0.8f, 0.1f, 0.08f));
+            var cup = M("Cup", G(0.9f), 0.5f);
+            for (int k = 0; k < 2; k++)
+                P(PrimitiveType.Cylinder, "Cup", r, desk + new Vector3(-0.3f + 0.55f * k, 0.8f, -0.1f), new Vector3(0.08f, 0.05f, 0.08f), cup);
         }
 
         // Pedestal with a labelled cap at the room centre; a grab attempt on it = RoomButton n (same desk/XR path as the doors).
