@@ -406,6 +406,7 @@ namespace PerfectParticipant.Editor
                 float z = CorridorLayout.FirstDoorZ - CorridorLayout.SlotLen * k;
                 Static(Cb("LightPanel", c, new Vector3(0, 2.594f, z), new Vector3(0.6f, 0.012f, 1.2f), panel));
                 CLight(c, new Vector3(0, 2.4f, z), 4f, 3f);
+                Speaker(c, new Vector3(0, 2.58f, z - 1.05f)); // between the light panels, one per corridor section
             }
 
             // Room One sign beside the lab door, corridor side (viewer faces +Z: right is +X)
@@ -416,6 +417,21 @@ namespace PerfectParticipant.Editor
             Rooms(c, wall);
             for (int n = CorridorLayout.First; n <= CorridorLayout.Last; n++) RoomDoor(c, n, paper);
         }
+
+        // Ceiling speaker look (disc + slits). The lab's SpeakerGrille carries the narrator AudioSource; corridor and
+        // room ones ("NarratorSpeaker") are only spots RoomStateController moves that source to when the player is out there.
+        static void Grille(Transform sp)
+        {
+            P(PrimitiveType.Cylinder, "Disc", sp, Vector3.zero, new Vector3(0.3f, 0.008f, 0.3f), M("Grille", G(0.4f), 0.4f));
+            var dk = M("Dark", G(0.05f), 0.05f);
+            for (int i = -2; i <= 2; i++)
+            {
+                float x = 0.045f * i, len = 2f * Mathf.Sqrt(0.15f * 0.15f - x * x) * 0.9f;
+                Cb("Slit", sp, new Vector3(x, -0.005f, 0), new Vector3(0.012f, 0.004f, len), dk);
+            }
+        }
+
+        static void Speaker(Transform p, Vector3 pos) => Grille(E("NarratorSpeaker", p, pos).transform);
 
         static void CLight(Transform p, Vector3 pos, float range, float intensity)
         {
@@ -484,6 +500,7 @@ namespace PerfectParticipant.Editor
                 W("RoomSideN_" + n, new Vector3(cx, 1.3f, cz + (slot - w) * 0.5f), new Vector3(depth, 2.6f, w), wall);
                 W("RoomSideS_" + n, new Vector3(cx, 1.3f, cz - (slot - w) * 0.5f), new Vector3(depth, 2.6f, w), wall);
                 CLight(r, new Vector3(cx, 2.35f, cz), 3.5f, CorridorLayout.Forbidden(n) ? 0.8f : 2.5f); // forbidden rooms dim
+                Speaker(r, new Vector3(cx, 2.58f, cz + 0.9f));
                 Vector3 onBack(float y, float off) => new Vector3(back - side * off, y, cz);
 
                 switch (n)
@@ -595,13 +612,7 @@ namespace PerfectParticipant.Editor
             var sp = E("SpeakerGrille", null, new Vector3(0, 2.58f, 0)).gameObject;
             var a = sp.AddComponent<AudioSource>();
             a.playOnAwake = false; a.spatialBlend = 1f; a.minDistance = 1f; a.maxDistance = 8f;
-            P(PrimitiveType.Cylinder, "Disc", sp.transform, Vector3.zero, new Vector3(0.3f, 0.008f, 0.3f), M("Grille", G(0.4f), 0.4f));
-            var dk = M("Dark", G(0.05f), 0.05f);
-            for (int i = -2; i <= 2; i++)
-            {
-                float x = 0.045f * i, len = 2f * Mathf.Sqrt(0.15f * 0.15f - x * x) * 0.9f;
-                Cb("Slit", sp.transform, new Vector3(x, -0.005f, 0), new Vector3(0.012f, 0.004f, len), dk);
-            }
+            Grille(sp.transform);
 
             Cam("CeilingCamera", new Vector3(1.6f, 2.5f, -1.6f));
             Cam("CeilingCameraB", new Vector3(-1.6f, 2.5f, 1.6f));

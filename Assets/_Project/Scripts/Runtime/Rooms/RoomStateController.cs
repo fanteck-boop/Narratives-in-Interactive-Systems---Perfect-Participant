@@ -62,6 +62,11 @@ namespace PerfectParticipant
         // corridor room doors: Leaf_n pivots at the hinge, swing into the room
         class CDoor { public Transform leaf; public float angle, target; }
         readonly Dictionary<int, CDoor> cdoors = new Dictionary<int, CDoor>();
+        // corridor / room ceiling speakers: outside the lab the narrator voice sits at the one nearest the head
+        readonly List<Transform> speakers = new List<Transform>();
+        bool voiceOut;
+        Vector3 voiceLab; // where the voice was when the player left the lab (grille, or the window after R-04)
+
         const float CDoorOpen = 90f, CDoorOpenSpeed = 120f, CDoorCloseSpeed = 45f; // deg, deg/s; slow shut (playtest: felt like a trap)
 
         // misc props
@@ -118,6 +123,8 @@ namespace PerfectParticipant
             window = RoomUtil.Named("ObservationWindow");
             grille = RoomUtil.Named("SpeakerGrille");
             camT = RoomUtil.Named("CeilingCamera");
+            foreach (var t in FindObjectsByType<Transform>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
+                if (t.name == "NarratorSpeaker") speakers.Add(t);
             for (int n = CorridorLayout.First; n <= CorridorLayout.Last; n++)
             {
                 var l = RoomUtil.Named("Leaf_" + n);
@@ -414,6 +421,8 @@ namespace PerfectParticipant
 
             if (tetherLine && tetherLine.enabled) { tetherLine.SetPosition(0, TetherAnchor); tetherLine.SetPosition(1, cube.position); }
 
+            FollowVoice();
+
             foreach (var cd in cdoors.Values)
                 if (cd.angle != cd.target)
                 {
@@ -422,6 +431,28 @@ namespace PerfectParticipant
                 }
 
             UpdateObservers(dt);
+        }
+
+        // Playtest: from the corridor the lab grille was up to 15 m away and hard to hear.
+        void FollowVoice()
+        {
+            var cam = Camera.main;
+            if (!dialogue || !cam || speakers.Count == 0) return;
+            Vector3 h = cam.transform.position;
+            bool outside = h.z < CorridorLayout.LabDoorZ - CorridorLayout.Wall;
+            if (!outside)
+            {
+                if (voiceOut) { dialogue.Voice.position = voiceLab; voiceOut = false; }
+                return;
+            }
+            if (!voiceOut) { voiceLab = dialogue.Voice.position; voiceOut = true; }
+            Transform best = null; float bd = float.MaxValue;
+            foreach (var s in speakers)
+            {
+                float d = (s.position - h).sqrMagnitude;
+                if (d < bd) { bd = d; best = s; }
+            }
+            dialogue.Voice.position = best.position;
         }
 
         void UpdateObservers(float dt)
