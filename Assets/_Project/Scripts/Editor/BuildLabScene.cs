@@ -444,7 +444,7 @@ namespace PerfectParticipant.Editor
             W("HallWallFar", new Vector3(0, ht * 0.5f, z1 - w * 0.5f), new Vector3(2f * hw + 2f * w, ht, w), wall);
             foreach (int s in new[] { -1, 1 })
             {
-                W("HallWallSide", new Vector3(s * (hw + w * 0.5f), ht * 0.5f, cz), new Vector3(w, ht, d), wall);
+                if (s < 0) W("HallWallSide", new Vector3(s * (hw + w * 0.5f), ht * 0.5f, cz), new Vector3(w, ht, d), wall);
                 float inner = 0.5f, outer = hw + w; // near wall either side of the 1 m doorway (frame at +-0.5)
                 W("HallWallNear", new Vector3(s * (inner + outer) * 0.5f, ht * 0.5f, wz), new Vector3(outer - inner, ht, w), wall);
             }
@@ -461,6 +461,7 @@ namespace PerfectParticipant.Editor
 
             // 8 x 6 chairs facing the far wall; all empty, front row centre-left is tagged for the player
             var chairM = M("Chair", G(0.2f), 0.2f);
+            int seat = 0;
             for (int row = 0; row < 6; row++)
                 for (int col = 0; col < 8; col++)
                 {
@@ -473,7 +474,14 @@ namespace PerfectParticipant.Editor
                     {
                         Qd("ReservedTag", ch, new Vector3(0, 0.476f, 0), new Vector2(0.2f, 0.12f), paper, new Vector3(90, 180, 0));
                         T("ReservedText", ch, new Vector3(0, 0.477f, 0), new Vector3(90, 180, 0), "RESERVED\n<b>0417</b>", 0.035f, new Vector2(0.19f, 0.11f), Ink);
+                        continue;
                     }
+                    // every other seat already had its participant: number on the back, read from the entrance (+Z)
+                    int id = 370 + seat++;
+                    T("ChairNumber", ch, new Vector3(0, 0.85f, 0.222f), new Vector3(0, YawS, 0), id.ToString("0000"), 0.05f, new Vector2(0.3f, 0.08f), G(0.75f));
+                    if (id == 0402) Cb("Jacket", ch, new Vector3(0, 0.78f, 0.24f), new Vector3(0.46f, 0.3f, 0.03f), M("Jacket", new Color(0.12f, 0.16f, 0.28f), 0.1f)); // over the back, left behind
+                    if (id == 0411) Grabbable(Cb("BroughtCube", ch, new Vector3(0, 0.53f, 0), new Vector3(0.1f, 0.1f, 0.1f), M("BroughtCube", new Color(0.85f, 0.85f, 0.8f), 0.3f), true), 0.3f);
+                    if (id == 0388) foreach (float sx in new[] { -0.07f, 0.07f }) Cb("Shoe", ch, new Vector3(sx, 0.05f, -0.1f), new Vector3(0.09f, 0.1f, 0.26f), M("Shoe", G(0.08f), 0.4f));
                 }
 
             // the twist (team 2026-10-23): the voice was a participant. Its desk faces the chairs, its own chair says 0001.
@@ -507,9 +515,66 @@ namespace PerfectParticipant.Editor
                 T("StaffName", hl, p + new Vector3(0.001f, -0.5f, 0), new Vector3(0, YawW, 0), staff[k], 0.1f, new Vector2(0.8f, 0.3f), Ink);
             }
 
+            HallRightWall(hl, wall, paper, z0, z1);
+
             // the name, at last, across the far wall
             T("HallTitle", hl, new Vector3(0, 3.6f, z1 + 0.01f), new Vector3(0, YawS, 0), "STUDY 3B\n<size=45%>OBEDIENCE TO PROCEDURE</size>", 0.9f, new Vector2(12f, 3f), Ink);
             T("HallSub", hl, new Vector3(0, 1.9f, z1 + 0.01f), new Vector3(0, YawS, 0), "Thank you for your participation. Participant 0418 is waiting.", 0.35f, new Vector2(11f, 0.6f), G(0.15f));
+        }
+
+        // Hall right wall (+X) with two openings: the 0418 waiting room at eye height (the cycle goes on) and, high up,
+        // the gallery where Condition B watches from behind glass (HallObserver_n turn after the head, RoomStateController).
+        static void HallRightWall(Transform hl, Material wall, Material paper, float z0, float z1)
+        {
+            float hw = CorridorLayout.HallHalf, ht = CorridorLayout.HallHeight, w = CorridorLayout.Wall, x = hw + w * 0.5f;
+            void W(string n, float zTop, float zBot, float yLo, float yHi, Transform p = null) =>
+                Static(Cb(n, p ? p : hl, new Vector3(x, (yLo + yHi) * 0.5f, (zTop + zBot) * 0.5f), new Vector3(w, yHi - yLo, zTop - zBot), wall, true));
+            const float wA = -16f, wB = -17.4f, wLo = 0.9f, wHi = 2.1f;   // waiting room window
+            const float gA = -20f, gB = -24f, gLo = 3.2f, gHi = 4.6f;     // gallery window
+            W("HallWallSide", z0, wA, 0, ht); W("HallWallSide", wA, wB, 0, wLo); W("HallWallSide", wA, wB, wHi, ht);
+            W("HallWallSide", wB, gA, 0, ht); W("HallWallSide", gA, gB, 0, gLo); W("HallWallSide", gA, gB, gHi, ht);
+            W("HallWallSide", gB, z1, 0, ht);
+            var glass = M("Glass", new Color(0.03f, 0.05f, 0.07f, 0.7f), 0.9f, null, true);
+            var dark = M("Dark", G(0.05f), 0.05f); var sil = M("Silhouette", new Color(0.02f, 0.02f, 0.025f), 0f);
+
+            // a small lit box behind an opening: floor, ceiling, back and end walls
+            Transform Box(string n, float zA, float zB, float yLo, float yHi, float back, Color light)
+            {
+                var b = E(n, hl, Vector3.zero).transform;
+                float bx = hw + w, cx = (bx + back) * 0.5f, cz = (zA + zB) * 0.5f, dx = back - bx;
+                Static(Cb("Floor", b, new Vector3(cx, yLo - 0.1f, cz), new Vector3(dx, 0.2f, zA - zB + 0.2f), wall, true));
+                Static(Cb("Ceiling", b, new Vector3(cx, yHi + 0.05f, cz), new Vector3(dx, 0.1f, zA - zB + 0.2f), wall, true));
+                Static(Cb("Back", b, new Vector3(back + w * 0.5f, (yLo + yHi) * 0.5f, cz), new Vector3(w, yHi - yLo, zA - zB + 0.2f), wall, true));
+                foreach (float ez in new[] { zA + 0.05f, zB - 0.05f }) Static(Cb("End", b, new Vector3(cx, (yLo + yHi) * 0.5f, ez), new Vector3(dx, yHi - yLo, w), wall, true));
+                var li = E("BoxLight", b, new Vector3(cx, yHi - 0.3f, cz)).AddComponent<Light>();
+                li.type = LightType.Point; li.range = 4f; li.intensity = 2.5f; li.color = light; li.shadows = LightShadows.None;
+                return b;
+            }
+
+            // 0418, waiting its turn. Seen through the glass, it sits as the player sat at the start.
+            var wr = Box("WaitingRoom", wA + 0.8f, wB - 0.8f, 0f, 2.6f, hw + w + 2.4f, new Color(1f, 0.92f, 0.8f));
+            Qd("WaitingGlass", wr, new Vector3(hw - 0.001f, (wLo + wHi) * 0.5f, (wA + wB) * 0.5f), new Vector2(wA - wB, wHi - wLo), glass, new Vector3(0, YawE, 0));
+            float sx = hw + 1.6f, sz = (wA + wB) * 0.5f;
+            Cb("Seat", wr, new Vector3(sx, 0.45f, sz), new Vector3(0.45f, 0.05f, 0.45f), M("Chair", G(0.2f), 0.2f), true);
+            Cb("Back", wr, new Vector3(sx + 0.2f, 0.72f, sz), new Vector3(0.04f, 0.5f, 0.45f), M("Chair", G(0.2f), 0.2f), true);
+            P(PrimitiveType.Capsule, "Waiting_0418", wr, new Vector3(sx, 0.95f, sz), new Vector3(0.42f, 0.5f, 0.34f), sil);
+            P(PrimitiveType.Sphere, "Waiting_0418_Head", wr, new Vector3(sx - 0.03f, 1.55f, sz), new Vector3(0.22f, 0.25f, 0.22f), sil);
+            Qd("WaitingTag", wr, new Vector3(hw + w + 2.39f, 1.7f, sz), new Vector2(0.4f, 0.18f), paper, new Vector3(0, YawE, 0));
+            T("WaitingTagText", wr, new Vector3(hw + w + 2.388f, 1.7f, sz), new Vector3(0, YawE, 0), "0418\n<size=55%>PLEASE WAIT TO BE CALLED</size>", 0.06f, new Vector2(0.38f, 0.16f), Ink);
+            Qd("WaitingSign", hl, new Vector3(hw - 0.002f, 2.35f, sz), new Vector2(0.7f, 0.14f), paper, new Vector3(0, YawE, 0));
+            T("WaitingSignText", hl, new Vector3(hw - 0.004f, 2.35f, sz), new Vector3(0, YawE, 0), "WAITING ROOM", 0.07f, new Vector2(0.66f, 0.12f), Ink);
+
+            // the gallery: three observers who were Condition B, notepads up, turning after the player
+            var gl = Box("Gallery", gA + 0.4f, gB - 0.4f, gLo - 0.2f, 5.4f, hw + w + 1.8f, new Color(0.8f, 0.85f, 1f));
+            Qd("GalleryGlass", gl, new Vector3(hw - 0.001f, (gLo + gHi) * 0.5f, (gA + gB) * 0.5f), new Vector2(gA - gB, gHi - gLo), glass, new Vector3(0, YawE, 0));
+            Static(Cb("GalleryRail", hl, new Vector3(hw - 0.06f, gLo - 0.05f, (gA + gB) * 0.5f), new Vector3(0.12f, 0.1f, gA - gB + 0.2f), dark));
+            float[] oz = { -21f, -22f, -23f }, oh = { 0.85f, 0.8f, 0.9f };
+            for (int i = 0; i < 3; i++)
+            {
+                var o = E("HallObserver_" + (i + 1), gl, new Vector3(hw + 0.9f, gLo - 0.2f, oz[i]), new Vector3(0, -90f, 0)).transform; // local +Z = into the hall
+                P(PrimitiveType.Capsule, "Body", o, new Vector3(0, oh[i], 0), new Vector3(0.5f, oh[i], 0.35f), sil);
+                Cb("Notepad", o, new Vector3(0.12f, oh[i] + 0.15f, 0.22f), new Vector3(0.16f, 0.22f, 0.01f), paper);
+            }
         }
 
         // Ceiling speaker look (disc + slits). The lab's SpeakerGrille carries the narrator AudioSource; corridor and

@@ -30,6 +30,8 @@ namespace PerfectParticipant.Editor
             new Shot("13_hall", new Vector3(5.5f, 2.6f, -15f), new Vector3(-1f, 1.6f, -27f)),
             new Shot("14_hall_voice_desk", new Vector3(0.6f, 1.6f, -24.6f), new Vector3(0f, 0.9f, -26.8f)),
             new Shot("15_hall_staff", new Vector3(-3.6f, 1.7f, -19.7f), new Vector3(-7f, 1.9f, -19.7f)),
+            new Shot("16_hall_gallery", new Vector3(1.5f, 1.7f, -17.5f), new Vector3(7f, 3.2f, -21.5f)),
+            new Shot("17_waiting_0418", new Vector3(4.5f, 1.6f, -16.7f), new Vector3(8.6f, 1.2f, -16.7f)),
         };
 
         [MenuItem("Perfect Participant/Capture Screenshots")]

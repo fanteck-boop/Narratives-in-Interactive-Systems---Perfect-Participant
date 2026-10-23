@@ -125,6 +125,7 @@ namespace PerfectParticipant
             grille = RoomUtil.Named("SpeakerGrille");
             camT = RoomUtil.Named("CeilingCamera");
             camB = RoomUtil.Named("CeilingCameraB"); camC = RoomUtil.Named("CorridorCamera");
+            for (int i = 1; i <= 3; i++) { var o = RoomUtil.Named("HallObserver_" + i); if (o) hallObs.Add(o); }
             screen = RoomUtil.Named("ScreenText")?.GetComponent<TMP_Text>();
             var ch = new GameObject("CorridorHum").AddComponent<AudioSource>(); // 2D room tone, faded in outside the lab
             ch.transform.SetParent(transform, false);
@@ -443,6 +444,7 @@ namespace PerfectParticipant
 
         static readonly string[] CamLeds = { "LED_Camera", "LED_CameraB", "LED_CameraC" };
         Transform camB, camC;
+        readonly List<Transform> hallObs = new List<Transform>(); // the Hall gallery: Condition B, watching
         TMP_Text screen;
         AudioSource corridorHum;
 
@@ -461,6 +463,7 @@ namespace PerfectParticipant
             float k = 1f - Mathf.Exp(-Time.deltaTime * 1.2f);
             if (camB && tier == Tier.Flagged) camB.rotation = Quaternion.Slerp(camB.rotation, Quaternion.LookRotation(head - camB.position), k);
             if (camC) camC.rotation = Quaternion.Slerp(camC.rotation, Quaternion.LookRotation(head - camC.position), k);
+            foreach (var o in hallObs) { var d = head - o.position; d.y = 0f; if (d.sqrMagnitude > 0.01f) o.rotation = Quaternion.Slerp(o.rotation, Quaternion.LookRotation(d), k); }
         }
 
         // Playtest: from the corridor the lab grille was up to 15 m away and hard to hear.

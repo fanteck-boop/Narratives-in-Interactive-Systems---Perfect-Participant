@@ -89,7 +89,7 @@ namespace PerfectParticipant.Core
                 if ((_idleT += dt) >= CorridorIdle) { RouteClass(ResponseKind.Inaction); FinishRoute(); } // never left the lab
                 return;
             }
-            if (_hallOpen) { if (at == CorridorLayout.Hall) { Play(_refusalPath ? "H-R" : "H-01"); FinishRoute(); } return; } // the ending waits in the hall; the voice says who it is
+            if (_hallOpen) { if (at == CorridorLayout.Hall) { if (_refusalPath) Play("H-R"); else { Play("H-01"); Play("H-02"); } FinishRoute(); } return; } // the ending waits in the hall; the voice says who it is
             if (i.CorridorDoor != 0) DoorAttempt(i.CorridorDoor);
             if (i.CardSwiped != 0) CardSwipe(i.CardSwiped);
 
