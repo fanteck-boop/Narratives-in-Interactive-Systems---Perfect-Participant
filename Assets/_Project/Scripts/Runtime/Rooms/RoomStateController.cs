@@ -239,11 +239,13 @@ namespace PerfectParticipant
                 case GameState.EndE1:
                     warm = true;
                     foreach (var k in new List<string>(leds.Keys)) if (!k.StartsWith("LED_Camera")) SetLed(k, Green);
-                    Beep(PlaceholderAudio.Applause(), grille ? grille.position : Vector3.up * 2.5f, 0.7f);
-                    Beep(PlaceholderAudio.Chime(), door ? door.position : Vector3.back * 2f, 1f); // door itself opened on DoorUnlock after Test3
+                    // the endings play in the Hall now: the applause comes from the gallery, not the empty lab
+                    Beep(PlaceholderAudio.Applause(), hallObs.Count > 1 ? hallObs[1].position : grille ? grille.position : Vector3.up * 2.5f, 0.7f);
+                    StartCoroutine(HallLightsOut());
                     break;
                 case GameState.EndE2:
                     SetLed("LED_Clipboard", new Color(1f, 0.9f, 0.7f));
+                    StartCoroutine(HallLightsOut());
                     break;
             }
         }
@@ -357,6 +359,27 @@ namespace PerfectParticipant
         void SetObs(Obs o) { obs = o; obsT = 0f; }
 
         static void Beep(AudioClip c, Vector3 p, float v) => AudioSource.PlayClipAtPoint(c, p, v);
+
+        // During the ending the Hall's ceiling lights go out from the entrance inward, one at a time; the lamp over
+        // 0001's desk and the gallery stay lit.
+        System.Collections.IEnumerator HallLightsOut()
+        {
+            var hall = RoomUtil.Named("Hall");
+            if (!hall) yield break;
+            var lights = new List<Light>();
+            foreach (var l in hall.GetComponentsInChildren<Light>()) if (l.name == "CorridorLight") lights.Add(l);
+            lights.Sort((a, b) => b.transform.position.z.CompareTo(a.transform.position.z));
+            yield return new WaitForSeconds(8f);
+            foreach (var l in lights)
+            {
+                Beep(PlaceholderAudio.Thump(60f, 0.3f), l.transform.position, 0.6f);
+                foreach (var r in hall.GetComponentsInChildren<Renderer>()) // its emissive panel goes dark with it
+                    if (r.name == "LightPanel" && Vector3.Distance(r.transform.position, l.transform.position) < 1f) r.enabled = false;
+                for (float i0 = l.intensity, t = 0f; t < 1f; t += Time.deltaTime) { l.intensity = Mathf.Lerp(i0, 0f, t); yield return null; }
+                l.intensity = 0f;
+                yield return new WaitForSeconds(3f);
+            }
+        }
 
         void Unlock(bool heavy)
         {

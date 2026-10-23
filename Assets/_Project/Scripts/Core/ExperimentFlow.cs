@@ -8,6 +8,7 @@ namespace PerfectParticipant.Core
     public sealed partial class ExperimentFlow // corridor route (Test4) in Route.cs
     {
         public const float IntroDelay = 5f, AfterReaction = 4f, SlippedAt = 60; // 3 / 2 felt rushed (team, 2026-10-21)
+        public const float EndLinger = 10f; // silence in the Hall before the card: time to look around (team 2026-10-23)
         public const int ClipboardComposure = -10; // per clipboard throw (team, 2026-10-21)
         int _clipThrows;
 
@@ -184,7 +185,7 @@ namespace PerfectParticipant.Core
                     Then(1f, () => Play("E1-01"));
                     Then(1f, () => Play("E1-02"));
                     Then(1f, () => Play("E1-03"));
-                    Then(1f, () => Card(Cards.AsExpected, null));
+                    Then(EndLinger, () => Card(Cards.AsExpected, null));
                     break;
                 case GameState.EndE2:
                     Ending = EndingId.E2;
@@ -193,7 +194,7 @@ namespace PerfectParticipant.Core
                     if (Model.D == 3) Then(1f, () => Play("E2-03a"));
                     if (Model.Has(Flag.LateConsent)) Then(1f, () => Play("E2-03b"));
                     Then(1f, () => Play("E2-03"));
-                    Then(1f, () => Card(Cards.AsExpected, null));
+                    Then(EndLinger, () => Card(Cards.AsExpected, null));
                     break;
                 case GameState.EndE3:
                     Ending = EndingId.E3;

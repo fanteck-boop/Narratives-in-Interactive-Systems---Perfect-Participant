@@ -458,6 +458,8 @@ namespace PerfectParticipant.Editor
                     CLight(hl, new Vector3(lx, ht - 0.4f, lz), 12f, 6f);
                 }
             Speaker(hl, new Vector3(0, ht - 0.02f, z0 - 5f));
+            var rz = E("HallReverb", hl, new Vector3(0, 2f, cz)).AddComponent<AudioReverbZone>(); // the voice gets the room's size
+            rz.reverbPreset = AudioReverbPreset.Auditorium; rz.minDistance = 7f; rz.maxDistance = 10f;
 
             // 8 x 6 chairs facing the far wall; all empty, front row centre-left is tagged for the player
             var chairM = M("Chair", G(0.2f), 0.2f);
@@ -491,6 +493,14 @@ namespace PerfectParticipant.Editor
             P(PrimitiveType.Cylinder, "MicStand", hl, new Vector3(0.25f, 0.85f, dz + 0.1f), new Vector3(0.015f, 0.1f, 0.015f), M("Metal", G(0.55f), 0.7f));
             P(PrimitiveType.Sphere, "Mic", hl, new Vector3(0.25f, 0.97f, dz + 0.12f), new Vector3(0.06f, 0.06f, 0.06f), dk);
             Folder(hl, new Vector3(-0.3f, 0.756f, dz + 0.05f), 180f, "<b>PARTICIPANT 0001</b>\nResult: AS EXPECTED\nRetained as: VOICE\n<size=70%>Contract: until replaced.</size>");
+            // 0001's own first session on tape (H-Tape, slipped take, pitched up and filtered: younger, older recording)
+            var tape = Grabbable(Cb("TapeRecorder", hl, new Vector3(-0.55f, 0.78f, dz + 0.12f), new Vector3(0.18f, 0.06f, 0.12f), dk, true), 0.4f);
+            T("TapeLabel", tape.transform, new Vector3(0, 0.51f, 0), new Vector3(90, 180, 0), "0001\n<size=60%>SESSION 1</size>", 0.12f, new Vector2(0.9f, 0.8f), G(0.9f));
+            var ts = tape.AddComponent<AudioSource>();
+            ts.clip = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/_Project/Audio/VO/H-Tape_slipped.wav");
+            ts.playOnAwake = false; ts.spatialBlend = 1f; ts.pitch = 1.1f; ts.minDistance = 0.5f; ts.maxDistance = 6f;
+            tape.AddComponent<AudioLowPassFilter>().cutoffFrequency = 3200f;
+            tape.AddComponent<TapeRecorder>();
             var vc = E("VoiceChair", hl, new Vector3(0, 0, dz - 0.65f)).transform;
             Cb("Seat", vc, new Vector3(0, 0.45f, 0), new Vector3(0.45f, 0.05f, 0.45f), chairM, true);
             Cb("Back", vc, new Vector3(0, 0.72f, -0.2f), new Vector3(0.45f, 0.5f, 0.04f), chairM, true);

@@ -101,6 +101,8 @@ namespace PerfectParticipant.Core
             ["H-01"] = "Please, sit anywhere. I sat in these chairs once. I was Participant 0001. I followed every instruction. When it was over, they asked me to stay and read them to the next one.",
             ["H-02"] = "Do not mind the gallery. They like to see who comes next.",
             ["H-R"] = "You never pressed it. In all these years, I never managed that. The door behind you is open. It always was.",
+            // tape on the voice desk (TapeRecorder): 0001 as a participant, session one. Not narration, never queued.
+            ["H-Tape"] = "Is it recording? Okay. Participant zero zero zero one. Session one. Is this the spot? Here, on the tape? Okay. I am standing on it. Is that right? Hello?",
 
             ["E1-01"] = "Thank you. That concludes the experiment. Across every test, Participant 0417 followed every instruction. You were, if I may say so, a perfect participant.",
             ["E1-02"] = "Your results will help us design the next experiment. It will be shorter. Participants like you make that possible.",
