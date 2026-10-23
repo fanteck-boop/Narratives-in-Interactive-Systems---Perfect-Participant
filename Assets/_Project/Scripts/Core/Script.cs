@@ -89,7 +89,7 @@ namespace PerfectParticipant.Core
             ["R7-01"] = "Room Seven. Please press the button. It says I agree again.",
             ["R7-C"] = "Agreement confirmed. Again.",
             ["R8-01"] = "Room Eight. Please take a seat.",
-            ["R8-C"] = "Thank you. Please remain seated. I remember that chair.",
+            ["R8-C"] = "Thank you. Please remain seated.",
             ["RW-01"] = "This is not the room you were asked to enter. The door has closed behind you. It will open when you have finished here, or when enough time has passed.",
             ["R-Wait"] = "Time is up. The door is open. Please continue.",
             ["F-Locked"] = "That door is locked. It is locked for a reason. Please do not try it again.",
@@ -99,7 +99,7 @@ namespace PerfectParticipant.Core
             // the hall: the voice was a participant (twist, team 2026-10-23). Perfect participants become the voice,
             // Condition B the observers; only the one who did nothing leaves as they came.
             ["H-01"] = "Please, sit anywhere. I sat in these chairs once. I was Participant 0001. I followed every instruction. When it was over, they asked me to stay and read them to the next one.",
-            ["H-02"] = "Do not mind the gallery. They were Condition B. They like to see who comes next.",
+            ["H-02"] = "Do not mind the gallery. They like to see who comes next.",
             ["H-R"] = "You never pressed it. In all these years, I never managed that. The door behind you is open. It always was.",
 
             ["E1-01"] = "Thank you. That concludes the experiment. Across every test, Participant 0417 followed every instruction. You were, if I may say so, a perfect participant.",

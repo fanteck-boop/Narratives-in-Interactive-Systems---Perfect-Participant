@@ -505,7 +505,7 @@ namespace PerfectParticipant.Editor
             float bx = -hw + 0.01f, bz = z1 + 7f;
             Qd("StaffBoard", hl, new Vector3(bx, 2f, bz + 1.5f), new Vector2(4.4f, 1.8f), M("Cork", new Color(0.6f, 0.45f, 0.3f), 0.05f), new Vector3(0, YawW, 0));
             CLight(hl, new Vector3(bx + 1.5f, 3f, bz + 1.5f), 4f, 2.5f);
-            T("StaffTitle", hl, new Vector3(bx + 0.002f, 2.7f, bz + 1.5f), new Vector3(0, YawW, 0), "OUR STAFF\n<size=65%>Every one of them started where you are standing.</size>", 0.12f, new Vector2(4.2f, 0.4f), Ink);
+            T("StaffTitle", hl, new Vector3(bx + 0.002f, 2.7f, bz + 1.5f), new Vector3(0, YawW, 0), "OUR STAFF", 0.12f, new Vector2(4.2f, 0.4f), Ink);
             string[] staff = { "0001\n<size=70%>VOICE</size>", "0391\n<size=70%>OBSERVER</size>", "0416\n<size=70%>OBSERVER</size>", "0417\n<size=70%>?</size>" };
             var portrait = M("Portrait", G(0.25f), 0.1f);
             for (int k = 0; k < staff.Length; k++)
@@ -894,7 +894,7 @@ Please remain seated.");
             Cb("Lectern", r, lect + new Vector3(0, 0.55f, 0), new Vector3(0.35f, 1.1f, 0.35f), wood, true);
             Qd("Script", r, lect + new Vector3(0, 1.105f, 0), new Vector2(0.21f, 0.297f), paper, new Vector3(90, yaw + 180f, 0));
             T("ScriptText", r, lect + new Vector3(0, 1.107f, 0), new Vector3(90, yaw + 180f, 0),
-                "<b>NARRATOR SCRIPT v12</b>\n\nR-04 <i>(do not record)</i>\n\"I did not think anyone would take it literally.\"\n\nNote: stay warm. Always.\n<size=70%>Read by: 0001</size>", 0.012f, new Vector2(0.19f, 0.27f), Ink, TextAlignmentOptions.TopLeft);
+                "<b>NARRATOR SCRIPT v12</b>\n\nR-04 <i>(do not record)</i>\n\"I did not think anyone would take it literally.\"\n\nNote: stay warm. Always.", 0.012f, new Vector2(0.19f, 0.27f), Ink, TextAlignmentOptions.TopLeft);
         }
 
         // Room 6, where the observers sit: the lab, live, from above.
@@ -910,7 +910,7 @@ Please remain seated.");
             for (int k = 0; k < 2; k++)
                 Grabbable(P(PrimitiveType.Cylinder, "Cup", r, desk + new Vector3(-0.3f + 0.55f * k, 0.8f, -0.1f), new Vector3(0.08f, 0.05f, 0.08f), cup, true), 0.15f);
             // the observers were participants once
-            Folder(r, desk + new Vector3(0.05f, 0.762f, -0.12f), 10f, "<b>0416</b>\nPerfect participant.\nReassigned to Room 6.\n<size=70%>Start date: tomorrow.</size>");
+            Folder(r, desk + new Vector3(0.05f, 0.762f, -0.12f), 10f, "<b>0416</b>\nCompleted.\nTransferred.\n<size=70%>Start date: tomorrow.</size>");
         }
 
         // Pedestal with a labelled cap at the room centre; a grab attempt on it = RoomButton n (same desk/XR path as the doors).
