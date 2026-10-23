@@ -314,6 +314,7 @@ namespace PerfectParticipant.Tests
             var h = Idle(); h.HeadZ = CorridorLayout.EndZ - 2f;
             for (int n = 0; n < 2000 && f.State == GameState.Test4; n++) log.AddRange(f.Tick(Dt, h));
             Assert.That(f.State, Is.EqualTo(GameState.EndE1).Or.EqualTo(GameState.EndE2)); // jumped in, so T3 decides which
+            CollectionAssert.Contains(LineIds(log).ToList(), "H-01"); // the voice says who it was
         }
 
         [Test] public void Route_WrongRoom_WaitOut_Reopens()

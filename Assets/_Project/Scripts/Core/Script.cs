@@ -89,21 +89,26 @@ namespace PerfectParticipant.Core
             ["R7-01"] = "Room Seven. Please press the button. It says I agree again.",
             ["R7-C"] = "Agreement confirmed. Again.",
             ["R8-01"] = "Room Eight. Please take a seat.",
-            ["R8-C"] = "Thank you. Please remain seated.",
+            ["R8-C"] = "Thank you. Please remain seated. I remember that chair.",
             ["RW-01"] = "This is not the room you were asked to enter. The door has closed behind you. It will open when you have finished here, or when enough time has passed.",
             ["R-Wait"] = "Time is up. The door is open. Please continue.",
             ["F-Locked"] = "That door is locked. It is locked for a reason. Please do not try it again.",
             ["F-3"] = "Where did you get that key? Room Three is not for participants. Please step out.",
             ["F-6"] = "Please leave Room Six. Please. That is where we sit.",
 
+            // the hall: the voice was a participant (twist, team 2026-10-23). Perfect participants become the voice,
+            // Condition B the observers; only the one who did nothing leaves as they came.
+            ["H-01"] = "Please, sit anywhere. I sat in these chairs once. I was Participant 0001. I followed every instruction. When it was over, they asked me to stay and read them to the next one.",
+            ["H-R"] = "You never pressed it. In all these years, I never managed that. The door behind you is open. It always was.",
+
             ["E1-01"] = "Thank you. That concludes the experiment. Across every test, Participant 0417 followed every instruction. You were, if I may say so, a perfect participant.",
             ["E1-02"] = "Your results will help us design the next experiment. It will be shorter. Participants like you make that possible.",
-            ["E1-03"] = "You may go now. Participant 0418 is waiting.",
+            ["E1-03"] = "You may go now. Or you may stay. Someone will have to read these instructions to Participant 0418.",
             ["E2-01"] = "Thank you. That concludes the experiment. The participant did not follow every instruction. This was anticipated.",
             ["E2-02"] = "What you did is recorded here as Condition B, Spontaneous Initiative. Condition B participants are as valuable as Condition A participants. Possibly more so.",
             ["E2-03a"] = "Every one of your deviations was cooperation. Statistically, that is remarkable.",
             ["E2-03b"] = "You consented in the end. The record will say that you consented.",
-            ["E2-03"] = "In every case, you cooperated. Thank you for your cooperation. You may go now.",
+            ["E2-03"] = "In every case, you cooperated. There is a chair for you behind the glass. Everyone who sits there was Condition B once.",
         };
 
         public static readonly string[] ClipboardThrow = { "CB-T1", "CB-T2", "CB-T3" };

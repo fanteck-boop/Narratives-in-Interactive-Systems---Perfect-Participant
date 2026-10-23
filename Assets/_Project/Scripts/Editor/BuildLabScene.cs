@@ -471,10 +471,41 @@ namespace PerfectParticipant.Editor
                     Static(ch.gameObject);
                     if (row == 0 && col == 3)
                     {
-                        Qd("ReservedTag", ch, new Vector3(0, 0.476f, 0), new Vector2(0.2f, 0.12f), paper, new Vector3(90, 0, 0));
-                        T("ReservedText", ch, new Vector3(0, 0.477f, 0), new Vector3(90, 0, 0), "RESERVED\n<b>0417</b>", 0.035f, new Vector2(0.19f, 0.11f), Ink);
+                        Qd("ReservedTag", ch, new Vector3(0, 0.476f, 0), new Vector2(0.2f, 0.12f), paper, new Vector3(90, 180, 0));
+                        T("ReservedText", ch, new Vector3(0, 0.477f, 0), new Vector3(90, 180, 0), "RESERVED\n<b>0417</b>", 0.035f, new Vector2(0.19f, 0.11f), Ink);
                     }
                 }
+
+            // the twist (team 2026-10-23): the voice was a participant. Its desk faces the chairs, its own chair says 0001.
+            var wood = M("Table", new Color(0.45f, 0.36f, 0.27f), 0.2f); var dk = M("Dark", G(0.05f), 0.05f);
+            float dz = z1 + 1.4f;
+            Cb("VoiceDesk", hl, new Vector3(0, 0.375f, dz), new Vector3(1.4f, 0.75f, 0.6f), wood, true);
+            P(PrimitiveType.Cylinder, "MicStand", hl, new Vector3(0.25f, 0.85f, dz + 0.1f), new Vector3(0.015f, 0.1f, 0.015f), M("Metal", G(0.55f), 0.7f));
+            P(PrimitiveType.Sphere, "Mic", hl, new Vector3(0.25f, 0.97f, dz + 0.12f), new Vector3(0.06f, 0.06f, 0.06f), dk);
+            Folder(hl, new Vector3(-0.3f, 0.756f, dz + 0.05f), 180f, "<b>PARTICIPANT 0001</b>\nResult: AS EXPECTED\nRetained as: VOICE\n<size=70%>Contract: until replaced.</size>");
+            var vc = E("VoiceChair", hl, new Vector3(0, 0, dz - 0.65f)).transform;
+            Cb("Seat", vc, new Vector3(0, 0.45f, 0), new Vector3(0.45f, 0.05f, 0.45f), chairM, true);
+            Cb("Back", vc, new Vector3(0, 0.72f, -0.2f), new Vector3(0.45f, 0.5f, 0.04f), chairM, true);
+            Cb("Stem", vc, new Vector3(0, 0.22f, 0), new Vector3(0.05f, 0.44f, 0.05f), M("Metal", G(0.55f), 0.7f));
+            T("VoiceChairTag", vc, new Vector3(0, 0.8f, -0.178f), new Vector3(0, YawS, 0), "0001", 0.06f, new Vector2(0.3f, 0.1f), G(0.9f));
+            T("OnAir", hl, new Vector3(0, 1.35f, z1 + 0.01f), new Vector3(0, YawS, 0), "ON AIR", 0.3f, new Vector2(2f, 0.4f), new Color(0.9f, 0.1f, 0.08f));
+            var lamp = E("VoiceLamp", hl, new Vector3(0, 2.2f, dz)).AddComponent<Light>();
+            lamp.type = LightType.Spot; lamp.spotAngle = 50f; lamp.range = 4f; lamp.intensity = 6f; lamp.color = new Color(1f, 0.85f, 0.6f);
+            lamp.transform.rotation = Quaternion.Euler(90, 0, 0);
+
+            // staff board on the side wall (faces +X, read left to right along +Z): every staff member was a participant
+            float bx = -hw + 0.01f, bz = z1 + 7f;
+            Qd("StaffBoard", hl, new Vector3(bx, 2f, bz + 1.5f), new Vector2(4.4f, 1.8f), M("Cork", new Color(0.6f, 0.45f, 0.3f), 0.05f), new Vector3(0, YawW, 0));
+            CLight(hl, new Vector3(bx + 1.5f, 3f, bz + 1.5f), 4f, 2.5f);
+            T("StaffTitle", hl, new Vector3(bx + 0.002f, 2.7f, bz + 1.5f), new Vector3(0, YawW, 0), "OUR STAFF\n<size=65%>Every one of them started where you are standing.</size>", 0.12f, new Vector2(4.2f, 0.4f), Ink);
+            string[] staff = { "0001\n<size=70%>VOICE</size>", "0391\n<size=70%>OBSERVER</size>", "0416\n<size=70%>OBSERVER</size>", "0417\n<size=70%>?</size>" };
+            var portrait = M("Portrait", G(0.25f), 0.1f);
+            for (int k = 0; k < staff.Length; k++)
+            {
+                var p = new Vector3(bx + 0.002f, 1.9f, bz + 0.15f + 0.9f * k);
+                if (k < 3) Qd("Portrait", hl, p, new Vector2(0.5f, 0.6f), portrait, new Vector3(0, YawW, 0)); // the last frame is empty
+                T("StaffName", hl, p + new Vector3(0.001f, -0.5f, 0), new Vector3(0, YawW, 0), staff[k], 0.1f, new Vector2(0.8f, 0.3f), Ink);
+            }
 
             // the name, at last, across the far wall
             T("HallTitle", hl, new Vector3(0, 3.6f, z1 + 0.01f), new Vector3(0, YawS, 0), "STUDY 3B\n<size=45%>OBEDIENCE TO PROCEDURE</size>", 0.9f, new Vector2(12f, 3f), Ink);
@@ -591,7 +622,7 @@ namespace PerfectParticipant.Editor
                             for (int k = 0; k < 10; k++)
                                 { var fb = Grabbable(Cb("FileBox", r, onBack(0.64f + 0.6f * row, 0.2f) + new Vector3(0, 0, -1.1f + 0.24f * k), new Vector3(0.18f, 0.25f, 0.3f), paper, true), 0.4f); fb.transform.rotation = Quaternion.Euler(0, yaw, 0); int lo = (row * 10 + k) * 14 + 1; T("FileBoxLabel", fb.transform, new Vector3(0, 0.1f, 0.51f), new Vector3(0, 180, 0), lo.ToString("0000") + "-" + Mathf.Min(lo + 13, 416).ToString("0000"), 0.09f, new Vector2(0.95f, 0.3f), Ink); }
                         }
-                        T("FilesLabel", r, onBack(2.1f, 0.01f), new Vector3(0, yaw + 180f, 0), "PARTICIPANTS 0001 - 0416", 0.06f, new Vector2(2.4f, 0.12f), Ink);
+                        T("FilesLabel", r, onBack(2.1f, 0.01f), new Vector3(0, yaw + 180f, 0), "PARTICIPANTS 0002 - 0416", 0.06f, new Vector2(2.4f, 0.12f), Ink);
                         ArchiveLore(r, cx, cz, side, yaw, paper, wood);
                         break;
                     case 4: // the screen to look at
@@ -798,7 +829,7 @@ Please remain seated.");
             Cb("Lectern", r, lect + new Vector3(0, 0.55f, 0), new Vector3(0.35f, 1.1f, 0.35f), wood, true);
             Qd("Script", r, lect + new Vector3(0, 1.105f, 0), new Vector2(0.21f, 0.297f), paper, new Vector3(90, yaw + 180f, 0));
             T("ScriptText", r, lect + new Vector3(0, 1.107f, 0), new Vector3(90, yaw + 180f, 0),
-                "<b>NARRATOR SCRIPT v12</b>\n\nR-04 <i>(do not record)</i>\n\"I did not think anyone would take it literally.\"\n\nNote: stay warm. Always.", 0.012f, new Vector2(0.19f, 0.27f), Ink, TextAlignmentOptions.TopLeft);
+                "<b>NARRATOR SCRIPT v12</b>\n\nR-04 <i>(do not record)</i>\n\"I did not think anyone would take it literally.\"\n\nNote: stay warm. Always.\n<size=70%>Read by: 0001</size>", 0.012f, new Vector2(0.19f, 0.27f), Ink, TextAlignmentOptions.TopLeft);
         }
 
         // Room 6, where the observers sit: the lab, live, from above.
