@@ -184,6 +184,7 @@ namespace PerfectParticipant.Core
                     Ending = EndingId.E1;
                     Then(1f, () => Play("E1-01"));
                     Then(1f, () => Play("E1-02"));
+                    Unmask();
                     Then(1f, () => Play("E1-03"));
                     Then(EndLinger, () => Card(Cards.AsExpected, null));
                     break;
@@ -193,6 +194,7 @@ namespace PerfectParticipant.Core
                     Then(1f, () => Play("E2-02"));
                     if (Model.D == 3) Then(1f, () => Play("E2-03a"));
                     if (Model.Has(Flag.LateConsent)) Then(1f, () => Play("E2-03b"));
+                    Unmask();
                     Then(1f, () => Play("E2-03"));
                     Then(EndLinger, () => Card(Cards.AsExpected, null));
                     break;
@@ -202,6 +204,14 @@ namespace PerfectParticipant.Core
                     _e3Wait = true; _e3Anchored = false; _stillT = 0f;
                     break;
             }
+        }
+
+        // The formal ending first, then the voice drops the mask, then the offer (E1-03 / E2-03). Only in the Hall.
+        void Unmask()
+        {
+            if (!_inHall) return;
+            Then(1f, () => Play("H-01"));
+            Then(1f, () => Play("H-02"));
         }
 
         void LateConsent()

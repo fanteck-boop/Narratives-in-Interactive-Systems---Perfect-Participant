@@ -246,7 +246,7 @@ namespace PerfectParticipant.Tests
             Assert.IsTrue(f.Finished);
         }
 
-        // Walking out after R-06 enters the corridor route; walked through, refusal still ends on RESULT: NONE.
+        // Walking out after R-06: silent corridor, Hall already open, H-R there, then RESULT: NONE.
         [Test] public void E3_WalkOut_EntersCorridor_ThenCardNone()
         {
             var f = new ExperimentFlow();
@@ -258,7 +258,10 @@ namespace PerfectParticipant.Tests
             Assert.AreEqual(GameState.Test4, f.State);
             Assert.IsFalse(cmds.Any(c => c.Kind == CommandKind.RoomEvent && c.Id == RoomEvents.DoorUnlock), "door already open");
             for (int n = 0; n < 5000 && !f.Finished; n++) { var r = Idle(); RouteDriver(f, ref r); cmds.AddRange(f.Tick(Dt, r)); }
-            CollectionAssert.Contains(LineIds(cmds).ToList(), "C-01");
+            CollectionAssert.DoesNotContain(LineIds(cmds).ToList(), "C-01"); // silent corridor
+            Assert.IsTrue(cmds.Any(c => c.Kind == CommandKind.RoomEvent && c.Id == RoomEvents.DoorOpen && c.Value == CorridorLayout.Hall), "Hall open from the start");
+            CollectionAssert.Contains(LineIds(cmds).ToList(), "H-R");
+            Assert.IsFalse(cmds.Any(c => c.Kind == CommandKind.Classified && c.Test == TestId.Test4), "nothing left to score");
             Assert.IsTrue(CardShown(cmds));
             Assert.AreEqual(EndingId.E3, f.Ending);
         }
@@ -314,7 +317,11 @@ namespace PerfectParticipant.Tests
             var h = Idle(); h.HeadZ = CorridorLayout.EndZ - 2f;
             for (int n = 0; n < 2000 && f.State == GameState.Test4; n++) log.AddRange(f.Tick(Dt, h));
             Assert.That(f.State, Is.EqualTo(GameState.EndE1).Or.EqualTo(GameState.EndE2)); // jumped in, so T3 decides which
-            CollectionAssert.Contains(LineIds(log).ToList(), "H-01"); // the voice says who it was
+            for (int n = 0; n < 20000 && !f.Finished; n++) log.AddRange(f.Tick(Dt, h));
+            var ids = LineIds(log).ToList(); // formal ending, then the unmasking, then the offer
+            string last = f.Ending == EndingId.E1 ? "E1-03" : "E2-03", formal = f.Ending == EndingId.E1 ? "E1-02" : "E2-02";
+            Assert.Less(ids.IndexOf(formal), ids.IndexOf("H-01"));
+            Assert.Less(ids.IndexOf("H-01"), ids.IndexOf(last));
         }
 
         [Test] public void Route_WrongRoom_WaitOut_Reopens()

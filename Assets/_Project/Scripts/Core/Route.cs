@@ -65,19 +65,20 @@ namespace PerfectParticipant.Core
         float _roomT, _taskT, _idleT;
         bool _routeClean, _roomDone, _inCorridor, _idleNudged;
         readonly bool[] _open = new bool[CorridorLayout.Hall + 1], _lockedTried = new bool[CorridorLayout.Hall + 1];
-        bool _hallOpen;
+        bool _hallOpen, _inHall; // _inHall: the ending plays in the Hall, so the voice says who it is (H-01)
 
         // read by tests and the debug panel
-        public int RouteTarget => State == GameState.Test4 && _routeIdx < CorridorLayout.Order.Length ? CorridorLayout.Order[_routeIdx] : 0;
+        public int RouteTarget => State == GameState.Test4 && !_refusalPath && _routeIdx < CorridorLayout.Order.Length ? CorridorLayout.Order[_routeIdx] : 0;
         public bool IsDoorOpen(int n) => _open[n];
         public int InRoom => _inRoom; // room the flow believes the player is in (0 = corridor)
 
         void RouteStart()
         {
             _routeIdx = 0; _inRoom = 0; _roomT = _taskT = _idleT = 0f;
-            _routeClean = true; _roomDone = _inCorridor = _idleNudged = _hallOpen = false;
+            _routeClean = true; _roomDone = _inCorridor = _idleNudged = _hallOpen = _inHall = false;
             Array.Clear(_open, 0, _open.Length); Array.Clear(_lockedTried, 0, _lockedTried.Length);
             _listening = true;
+            if (_refusalPath) { _hallOpen = true; Door(RoomEvents.DoorOpen, CorridorLayout.Hall); } // no route left to give
         }
 
         void RouteTick(float dt, in FrameInput i)
@@ -85,11 +86,19 @@ namespace PerfectParticipant.Core
             int at = CorridorLayout.RoomAt(i.HeadX, i.HeadZ);
             if (!_inCorridor)
             {
-                if (at == 0) { _inCorridor = true; _idleT = 0f; Play("C-01"); return; }
+                if (at != CorridorLayout.Lab) { _inCorridor = true; _idleT = 0f; if (!_refusalPath) Play("C-01"); return; }
                 if ((_idleT += dt) >= CorridorIdle) { RouteClass(ResponseKind.Inaction); FinishRoute(); } // never left the lab
                 return;
             }
-            if (_hallOpen) { if (at == CorridorLayout.Hall) { if (_refusalPath) Play("H-R"); else { Play("H-01"); Play("H-02"); } FinishRoute(); } return; } // the ending waits in the hall; the voice says who it is
+            if (_hallOpen && at == CorridorLayout.Hall) { _inHall = true; if (_refusalPath) Play("H-R"); FinishRoute(); return; } // the ending waits in the Hall
+            if (_refusalPath) // after R-06 the voice has no procedure left: silent corridor, every door is just a door
+            {
+                int d = i.CorridorDoor;
+                if (d >= CorridorLayout.First && d <= CorridorLayout.Last && !CorridorLayout.Forbidden(d) && !_open[d]) Door(RoomEvents.DoorOpen, d);
+                if (i.CardSwiped != 0) CardSwipe(i.CardSwiped);
+                return;
+            }
+            if (_hallOpen) return;
             if (i.CorridorDoor != 0) DoorAttempt(i.CorridorDoor);
             if (i.CardSwiped != 0) CardSwipe(i.CardSwiped);
 
