@@ -118,6 +118,10 @@ namespace PerfectParticipant
             if (!keepBusy) Busy = queue.Count > 0;
         }
 
+        // Diegetic sound (the Hall tape) captions through the same strip, only while the narrator is quiet.
+        public void Caption(string s) { if (subtitlesOn && !playing) Show(s); }
+        public void ClearCaption() { if (!playing && subtitle) subtitle.text = ""; }
+
         void Show(string s)
         {
             if (!subtitle)

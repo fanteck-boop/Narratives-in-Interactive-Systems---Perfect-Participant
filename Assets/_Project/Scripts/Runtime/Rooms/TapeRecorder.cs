@@ -9,10 +9,20 @@ namespace PerfectParticipant
     {
         AudioSource src;
         GrabTracker me;
+        DialogueManager dm;
+        bool captioned;
 
-        void Awake() { src = GetComponent<AudioSource>(); me = GetComponent<GrabTracker>(); }
+        void Awake() { src = GetComponent<AudioSource>(); me = GetComponent<GrabTracker>(); dm = FindFirstObjectByType<DialogueManager>(); }
         void OnEnable() => GrabTracker.Grabbed += On;
         void OnDisable() => GrabTracker.Grabbed -= On;
-        void On(GrabTracker t) { if (t == me && !src.isPlaying) src.Play(); }
+
+        void On(GrabTracker t)
+        {
+            if (t != me || src.isPlaying) return;
+            src.Play();
+            if (dm) { dm.Caption("<i>[tape] " + Core.Lines.Text["H-Tape"] + "</i>"); captioned = true; }
+        }
+
+        void Update() { if (captioned && !src.isPlaying) { captioned = false; dm.ClearCaption(); } }
     }
 }

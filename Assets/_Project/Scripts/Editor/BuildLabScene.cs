@@ -500,6 +500,7 @@ namespace PerfectParticipant.Editor
             Cb("VoiceDesk", hl, new Vector3(0, 0.375f, dz), new Vector3(1.4f, 0.75f, 0.6f), wood, true);
             P(PrimitiveType.Cylinder, "MicStand", hl, new Vector3(0.25f, 0.85f, dz + 0.1f), new Vector3(0.015f, 0.1f, 0.015f), M("Metal", G(0.55f), 0.7f));
             P(PrimitiveType.Sphere, "Mic", hl, new Vector3(0.25f, 0.97f, dz + 0.12f), new Vector3(0.06f, 0.06f, 0.06f), dk);
+            Folder(hl, new Vector3(0.48f, 0.756f, dz - 0.1f), 175f, "<b>NARRATOR SCRIPT v12</b>\nP-01: \"Good morning, and thank you for coming.\"\n<size=70%>Read aloud: 416 times.\nNote to self: say it like you mean it.\nThey can hear when you don't.</size>");
             Folder(hl, new Vector3(-0.3f, 0.756f, dz + 0.05f), 180f, "<b>PARTICIPANT 0001</b>\nResult: AS EXPECTED\nRetained as: VOICE\n<size=70%>Contract: until replaced.</size>");
             // 0001's own first session on tape (H-Tape, slipped take, pitched up and filtered: younger, older recording)
             var tape = Grabbable(Cb("TapeRecorder", hl, new Vector3(-0.55f, 0.78f, dz + 0.12f), new Vector3(0.18f, 0.06f, 0.12f), dk, true), 0.4f);
@@ -692,6 +693,8 @@ namespace PerfectParticipant.Editor
                         var brb = box.AddComponent<Rigidbody>(); brb.mass = 0.5f; brb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
                         box.AddComponent<XRGrabInteractable>().movementType = XRBaseInteractable.MovementType.VelocityTracking;
                         box.AddComponent<GrabTracker>().kind = GrabKind.Other;
+                        box.transform.rotation = Quaternion.Euler(0, yaw, 0); // label faces the door, like the boxes already shelved
+                        T("BoxLabel", box.transform, new Vector3(0, 0, 0.51f), new Vector3(0, 180, 0), "0417", 0.12f, new Vector2(0.9f, 0.3f), Ink);
                         // Madeleine effect (brief 17.4): earlier participants' boxes already on the shelf, the free end is yours
                         for (int k = 0; k < 2; k++)
                         {
@@ -726,6 +729,9 @@ namespace PerfectParticipant.Editor
                             Cb("Back", ch, new Vector3(0, 0.72f, -0.17f), new Vector3(0.38f, 0.45f, 0.04f), chairM, true);
                             Qd("ObserverNotes", ch, new Vector3(0, 0.476f, 0), new Vector2(0.18f, 0.24f), paper, new Vector3(90, 0, 0));
                             T("ObserverNoteText", ch, new Vector3(0, 0.478f, 0), new Vector3(90, 0, 0), ObserverNotes[k], 0.014f, new Vector2(0.16f, 0.22f), Ink, TextAlignmentOptions.TopLeft);
+                            // a staff badge left on each chair back; the numbers are ones the archive (Room 3) already names
+                            Qd("StaffBadge", ch, new Vector3(0.09f, 0.68f, -0.192f), new Vector2(0.07f, 0.1f), paper);
+                            T("StaffBadgeText", ch, new Vector3(0.09f, 0.68f, -0.194f), Vector3.zero, "STAFF\n<b>" + new[] { "0288", "0391", "0416" }[k] + "</b>", 0.012f, new Vector2(0.065f, 0.09f), Ink);
                         }
                         ObserverLore(r, cx, cz, side, yaw, wood);
                         break;
