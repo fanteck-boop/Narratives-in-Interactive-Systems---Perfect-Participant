@@ -10,6 +10,10 @@ using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
 using UnityEngine.XR.Interaction.Toolkit.Filtering;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
+using UnityEngine.XR.Interaction.Toolkit.Locomotion;
+using UnityEngine.XR.Interaction.Toolkit.Locomotion.Comfort;
+using UnityEngine.XR.Interaction.Toolkit.Locomotion.Movement;
+using UnityEngine.XR.Interaction.Toolkit.Locomotion.Turning;
 
 namespace PerfectParticipant.Editor
 {
@@ -43,7 +47,7 @@ namespace PerfectParticipant.Editor
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             RenderSettings.skybox = null;
             RenderSettings.ambientMode = AmbientMode.Flat;
-            RenderSettings.ambientLight = new Color(0.45f, 0.44f, 0.42f); // gamma value; 0.2 is ~0.03 linear and rendered near black
+            RenderSettings.ambientLight = new Color(0.36f, 0.355f, 0.35f); // gamma value; 0.2 is ~0.03 linear and rendered near black
 
             Shell(); LabDetails(); Window(); Tally(); Cork(); ConsoleObj(); TableObj(); DoorObj(); Corridor(); Shelf(); ChairObj(); MoreLore();
             CeilingProps(); Tape(); Lights(); Rig(); Systems();
@@ -403,8 +407,10 @@ namespace PerfectParticipant.Editor
             for (int k = 0; k < CorridorLayout.Slots; k++)
             {
                 float z = CorridorLayout.FirstDoorZ - CorridorLayout.SlotLen * k;
-                Static(Cb("LightPanel", c, new Vector3(0, 2.594f, z), new Vector3(0.6f, 0.012f, 1.2f), panel));
-                CLight(c, new Vector3(0, 2.4f, z), 4f, 3f);
+                // mood (team 2026-10-24): every other panel is dead, one of the live ones flickers
+                bool live = k % 2 == 0;
+                Static(Cb("LightPanel", c, new Vector3(0, 2.594f, z), new Vector3(0.6f, 0.012f, 1.2f), live ? panel : M("LightPanelDead", G(0.35f), 0.1f)));
+                if (live) CLight(c, new Vector3(0, 2.4f, z), 5f, 3f).name = k == 2 ? "CorridorLightFlicker" : "CorridorLight";
                 Speaker(c, new Vector3(0, 2.58f, z - 1.05f)); // between the light panels, one per corridor section
             }
 
@@ -452,7 +458,7 @@ namespace PerfectParticipant.Editor
 
             var panel = M("LightPanel", G(0.9f), 0.1f, new Color(1f, 0.96f, 0.9f) * 1.6f);
             foreach (float lx in new[] { -3.5f, 3.5f })
-                foreach (float lz in new[] { z0 - 3.5f, z0 - 10.5f })
+                foreach (float lz in new[] { z0 - 10.5f }) // only the front half is lit: the player is drawn to 0001's desk
                 {
                     Static(Cb("LightPanel", hl, new Vector3(lx, ht - 0.006f, lz), new Vector3(1.2f, 0.012f, 1.2f), panel));
                     CLight(hl, new Vector3(lx, ht - 0.4f, lz), 12f, 6f);
@@ -602,10 +608,11 @@ namespace PerfectParticipant.Editor
 
         static void Speaker(Transform p, Vector3 pos) => Grille(E("NarratorSpeaker", p, pos).transform);
 
-        static void CLight(Transform p, Vector3 pos, float range, float intensity)
+        static Light CLight(Transform p, Vector3 pos, float range, float intensity)
         {
             var li = E("CorridorLight", p, pos).AddComponent<Light>(); // not RoomLight*: tier and brown-out leave it alone
             li.type = LightType.Point; li.color = new Color(0.95f, 0.97f, 1f); li.range = range; li.intensity = intensity; li.shadows = LightShadows.None;
+            return li;
         }
 
         // Yaw that turns local +Z toward the corridor (room interior = local -Z) for a door / item on this side.
@@ -669,7 +676,8 @@ namespace PerfectParticipant.Editor
                 W("RoomBack_" + n, new Vector3(back + side * w * 0.5f, 1.3f, cz), new Vector3(w, 2.6f, slot), wall);
                 W("RoomSideN_" + n, new Vector3(cx, 1.3f, cz + (slot - w) * 0.5f), new Vector3(depth, 2.6f, w), wall);
                 W("RoomSideS_" + n, new Vector3(cx, 1.3f, cz - (slot - w) * 0.5f), new Vector3(depth, 2.6f, w), wall);
-                CLight(r, new Vector3(cx, 2.35f, cz), 3.5f, CorridorLayout.Forbidden(n) ? 0.8f : 2.5f); // forbidden rooms dim
+                var lamp = CLight(r, new Vector3(cx, 2.35f, cz), 3.5f, CorridorLayout.Forbidden(n) ? 0.8f : 2.5f); // forbidden rooms dim
+                lamp.name = "RoomLamp_" + n; lamp.enabled = false; // dark until the door opens (RoomStateController flickers it on)
                 Speaker(r, new Vector3(cx, 2.58f, cz + 0.9f));
                 Vector3 onBack(float y, float off) => new Vector3(back - side * off, y, cz);
 
@@ -1048,7 +1056,39 @@ Please remain seated.");
                 rig.name = "XROrigin";
                 rig.transform.SetPositionAndRotation(new Vector3(0, 0, -1.2f), Quaternion.identity); // facing +Z
                 rig.AddComponent<DesktopRig>(); // self-disables when a headset or XR simulator is present
+                FreeWalk(rig);
             }
+        }
+
+        // Team 2026-10-24: walk freely with the left stick, as on desktop. No teleport, no grab move (the slow walk down
+        // the corridor is part of the experience); walking pace; right stick snap turn; comfort vignette while moving.
+        static void FreeWalk(GameObject rig)
+        {
+            foreach (var t in rig.GetComponentsInChildren<Transform>(true))
+                if (t.name == "Teleportation" || t.name == "Grab Move") { t.gameObject.SetActive(false); PrefabUtility.RecordPrefabInstancePropertyModifications(t.gameObject); }
+            foreach (var mb in rig.GetComponentsInChildren<MonoBehaviour>(true))
+            {
+                var so = new SerializedObject(mb);
+                if (mb.GetType().Name == "ControllerInputActionManager") // Samples type: set by field name, never edit Samples
+                {
+                    so.FindProperty("m_TeleportMode").objectReferenceValue = null;
+                    so.FindProperty("m_TeleportModeCancel").objectReferenceValue = null;
+                }
+                else if (mb is ContinuousMoveProvider) so.FindProperty("m_MoveSpeed").floatValue = 1.4f;
+                else continue;
+                so.ApplyModifiedPropertiesWithoutUndo();
+            }
+            const string vigCopy = "Assets/_Project/Prefabs/TunnelingVignette.prefab";
+            var vsrc = AssetDatabase.FindAssets("TunnelingVignette t:Prefab").Select(AssetDatabase.GUIDToAssetPath).FirstOrDefault(p => p.Contains("Starter Assets"));
+            var cam = rig.GetComponentInChildren<Camera>(true);
+            if (vsrc == null || !cam) { Debug.LogWarning("[BuildLab] no TunnelingVignette or rig camera: comfort vignette skipped"); return; }
+            if (!AssetDatabase.LoadAssetAtPath<GameObject>(vigCopy)) AssetDatabase.CopyAsset(vsrc, vigCopy);
+            var vig = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(vigCopy), cam.transform);
+            vig.transform.localPosition = Vector3.zero; vig.transform.localRotation = Quaternion.identity;
+            var ctl = vig.GetComponent<TunnelingVignetteController>();
+            foreach (var p in rig.GetComponentsInChildren<LocomotionProvider>(true))
+                if (p is ContinuousMoveProvider || p is SnapTurnProvider) ctl.locomotionVignetteProviders.Add(new LocomotionVignetteProvider { locomotionProvider = p, enabled = true });
+            PrefabUtility.RecordPrefabInstancePropertyModifications(ctl); // plain C# edits on a prefab instance are lost otherwise
         }
 
         static void Systems()

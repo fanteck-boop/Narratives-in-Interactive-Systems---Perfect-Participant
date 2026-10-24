@@ -63,6 +63,7 @@ namespace PerfectParticipant
         // corridor room doors: Leaf_n pivots at the hinge, swing into the room
         class CDoor { public Transform leaf; public float angle, target; }
         readonly Dictionary<int, CDoor> cdoors = new Dictionary<int, CDoor>();
+        readonly Dictionary<int, Light> lamps = new Dictionary<int, Light>(); // RoomLamp_n: dark until its door opens
         // corridor / room ceiling speakers: outside the lab the narrator voice sits at the one nearest the head
         readonly List<Transform> speakers = new List<Transform>();
         bool voiceOut;
@@ -137,7 +138,11 @@ namespace PerfectParticipant
             {
                 var l = RoomUtil.Named("Leaf_" + n);
                 if (l) cdoors[n] = new CDoor { leaf = l };
+                var lp = RoomUtil.Named("RoomLamp_" + n);
+                if (lp && lp.TryGetComponent<Light>(out var lamp)) lamps[n] = lamp;
             }
+            var fl = RoomUtil.Named("CorridorLightFlicker");
+            if (fl && fl.TryGetComponent<Light>(out var flick)) StartCoroutine(Flicker(flick));
 
             foreach (var r in FindObjectsByType<Renderer>(FindObjectsInactive.Include, FindObjectsSortMode.None))
                 if (r.name.StartsWith("LED_")) AddLed(r.name, r);
@@ -202,6 +207,7 @@ namespace PerfectParticipant
                     {
                         cd.target = c.Id == RoomEvents.DoorOpen ? CDoorOpen : 0f;
                         if (c.Id == RoomEvents.DoorOpen) SetLed("LED_Reader" + c.Value, Green); // keycard reader (3, 6) only; others have none
+                        if (c.Id == RoomEvents.DoorOpen && lamps.TryGetValue(c.Value, out var lp) && !lp.enabled) StartCoroutine(LampOn(lp));
                         Beep(PlaceholderAudio.Thump(c.Id == RoomEvents.DoorOpen ? 80f : 55f, 0.5f), cd.leaf.position, 1f); // shut = deeper
                     }
                     else Evt(c.Id);
@@ -359,6 +365,29 @@ namespace PerfectParticipant
         void SetObs(Obs o) { obs = o; obsT = 0f; }
 
         static void Beep(AudioClip c, Vector3 p, float v) => AudioSource.PlayClipAtPoint(c, p, v);
+
+        // A room lamp stutters on like an old tube when its door first opens.
+        System.Collections.IEnumerator LampOn(Light l)
+        {
+            Beep(PlaceholderAudio.Thump(120f, 0.15f), l.transform.position, 0.4f);
+            foreach (float t in new[] { 0.08f, 0.12f, 0.05f, 0.3f }) { l.enabled = !l.enabled; yield return new WaitForSeconds(t); }
+            l.enabled = true;
+        }
+
+        // One corridor tube that never quite works: a short stutter every 6 to 14 s.
+        System.Collections.IEnumerator Flicker(Light l)
+        {
+            float on = l.intensity;
+            while (true)
+            {
+                yield return new WaitForSeconds(Random.Range(6f, 14f));
+                for (int k = Random.Range(2, 5); k > 0; k--)
+                {
+                    l.intensity = on * Random.Range(0f, 0.25f); yield return new WaitForSeconds(Random.Range(0.04f, 0.12f));
+                    l.intensity = on; yield return new WaitForSeconds(Random.Range(0.04f, 0.2f));
+                }
+            }
+        }
 
         // During the ending the Hall's ceiling lights go out from the entrance inward, one at a time; the lamp over
         // 0001's desk and the gallery stay lit.
