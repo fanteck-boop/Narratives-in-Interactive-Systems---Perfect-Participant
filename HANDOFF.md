@@ -188,3 +188,4 @@ Do not add `-quit` with `-runTests`. Passing: exit code 0, `results.xml` shows `
 - 2026-10-24: Gameplay review + fixes (decision 33): silent refusal corridor with open Hall, ending order formal > unmask > offer, ARCHITECTURE route paragraph updated. 106/106.
 - 2026-10-24: Continuous move for XR (decision 34) and darker lighting: dead corridor panels, flicker, room lamps on door open, half-lit Hall, ambient 0.36. 106/106, Validate OK.
 - 2026-10-24: Fix: props fell through a 0.1 m floor slot under every room doorway and the Hall threshold (corridor floor was only as wide as the corridor; room/Hall floors start past the wall). CorridorFloor now spans x +-(CorridorHalf + Wall) and runs to EndZ - Wall.
+- 2026-10-24: Observation record (TallyWall) counts with a number per row instead of one mark per response; the marks ran off the panel with the corridor rooms.
