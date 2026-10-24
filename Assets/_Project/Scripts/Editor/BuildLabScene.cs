@@ -381,10 +381,12 @@ namespace PerfectParticipant.Editor
             var wall = M("Wall", new Color(0.8f, 0.8f, 0.77f));
             float h = CorridorLayout.CorridorHalf, w = CorridorLayout.Wall, z0 = CorridorLayout.LabDoorZ - w, z1 = CorridorLayout.EndZ;
             float len = z0 - z1, cz = (z0 + z1) * 0.5f;
-            var floor = M("CorridorFloor", G(1f), 0.3f); Tex(floor, LabTextures.Floor(), 2f * h, len);
+            var floor = M("CorridorFloor", G(1f), 0.3f); Tex(floor, LabTextures.Floor(), 2f * (h + w), len + w);
             var ceil = M("CorridorCeiling", G(1f)); Tex(ceil, LabTextures.Ceiling(), 2f * h, len);
             void W(string n, Vector3 p, Vector3 s, Material m) => Static(Cb(n, c, p, s, m, true));
-            W("CorridorFloor", new Vector3(0, -0.05f, cz), new Vector3(2f * h, 0.1f, len), floor);
+            // floor runs under the side walls and the Hall threshold: room and Hall floors start past the wall, so a
+            // floor only as wide as the corridor left a 0.1 m slot under every doorway that props fell through
+            W("CorridorFloor", new Vector3(0, -0.05f, cz - w * 0.5f), new Vector3(2f * (h + w), 0.1f, len + w), floor);
             W("CorridorCeiling", new Vector3(0, 2.65f, cz), new Vector3(2f * h, 0.1f, len), ceil);
 
             // side walls: lintel over the doorways, wall pieces between them
