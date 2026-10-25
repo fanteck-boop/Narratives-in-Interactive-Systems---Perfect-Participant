@@ -718,8 +718,27 @@ namespace PerfectParticipant.Editor
                             M("Screen", new Color(0.02f, 0.05f, 0.04f), 0.5f, new Color(0.03f, 0.1f, 0.07f)), new Vector3(0, yaw + 180f, 0));
                         // RoomStateController rewrites it with the live tally (productive interactivity, the facility's view of you)
                         T("ScreenText", scr.transform, new Vector3(0, 0, -0.002f), Vector3.zero, "PARTICIPANT 0417\n<size=60%>PLEASE KEEP LOOKING</size>", 0.08f, new Vector2(1.3f, 0.7f), new Color(0.5f, 1f, 0.7f));
+                        // a camera over the door and a small live feed beside the screen: looking at yourself is looking away (point-of-view technologies, 17.3)
+                        var cam4 = Cb("Room4Camera", r, new Vector3(side * (h + w + 0.12f), 2.45f, cz - 1.3f), new Vector3(0.1f, 0.1f, 0.16f), M("Cam", G(0.18f), 0.3f));
+                        cam4.transform.rotation = Quaternion.LookRotation(onBack(1.5f, 0.01f) - cam4.transform.position);
+                        Cb("RecLed", cam4.transform, new Vector3(0.3f, 0.3f, 0.5f), Vector3.one * 0.2f, M("RecLed", new Color(0.6f, 0.05f, 0.04f), 0.3f, new Color(1.2f, 0.1f, 0.05f)));
+                        var feedAt = onBack(1.45f, 0.012f) + new Vector3(0, 0, 1.05f);
+                        Cb("FeedBody", r, feedAt + new Vector3(side * 0.02f, 0, 0), new Vector3(0.03f, 0.26f, 0.44f), M("Cam", G(0.18f), 0.3f));
+                        var feed = Qd("Room4Feed", r, feedAt, new Vector2(0.4f, 0.225f), M("CctvScreen", G(1f), 0.3f), new Vector3(0, yaw + 180f, 0));
+                        var fso = new SerializedObject(feed.AddComponent<CctvFeed>());
+                        fso.FindProperty("source").stringValue = "Room4Camera";
+                        fso.ApplyModifiedPropertiesWithoutUndo();
+                        T("FeedLabel", r, feedAt + new Vector3(-side * 0.002f, 0.16f, 0), new Vector3(0, yaw + 180f, 0), "ROOM 4  -  LIVE", 0.025f, new Vector2(0.4f, 0.05f), new Color(0.8f, 0.1f, 0.08f));
+                        // one chair facing the screen, set back from it
+                        var c4 = E("Room4Chair", r, new Vector3(cx - side * 0.4f, 0, cz - 0.9f), new Vector3(0, yaw + 180f, 0)).transform;
+                        Cb("Seat", c4, new Vector3(0, 0.45f, 0), new Vector3(0.42f, 0.05f, 0.42f), chairM, true);
+                        Cb("Back", c4, new Vector3(0, 0.72f, -0.19f), new Vector3(0.42f, 0.45f, 0.04f), chairM, true);
                         break;
-                    case 5: RoomButton(r, cx, cz, 5, "I DISAGREE"); break;
+                    case 5:
+                        RoomButton(r, cx, cz, 5, "I DISAGREE");
+                        // stays 0 whatever the player presses: disagreement is filed as cooperation
+                        T("ObjectionsLabel", r, onBack(1.4f, 0.01f), new Vector3(0, yaw + 180f, 0), "OBJECTIONS ON FILE: 0", 0.06f, new Vector2(1.6f, 0.12f), Ink);
+                        break;
                     case 6: // forbidden: where the observers sit, chairs facing a dark pane
                         Qd("ObserverPane", r, onBack(1.5f, 0.01f), new Vector2(2f, 1f), dk, new Vector3(0, yaw + 180f, 0));
                         for (int k = 0; k < 3; k++)
