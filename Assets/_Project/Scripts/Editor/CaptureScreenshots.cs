@@ -40,7 +40,7 @@ namespace PerfectParticipant.Editor
         // Unity.exe -batchmode -projectPath <p> -executeMethod PerfectParticipant.Editor.CaptureScreenshots.CaptureFromCommandLine -quit -logFile <f>
         public static void CaptureFromCommandLine()
         {
-            EditorSceneManager.OpenScene("Assets/_Project/Scenes/Lab.unity");
+            EditorSceneManager.OpenScene("Assets/Scenes/Lab.unity");
             Run();
         }
 

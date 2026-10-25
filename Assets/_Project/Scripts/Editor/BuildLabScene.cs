@@ -17,11 +17,11 @@ using UnityEngine.XR.Interaction.Toolkit.Locomotion.Turning;
 
 namespace PerfectParticipant.Editor
 {
-    // Builds Scenes/Lab.unity from primitives. Re-runnable: overwrites scene and materials.
+    // Builds Assets/Scenes/Lab.unity from primitives. Re-runnable: overwrites scene and materials.
     // Metres, origin = mark on floor, +Z north (see ARCHITECTURE.md). Quad/TMP face -Z, so yaw = wall facing the viewer.
     public static class BuildLabScene
     {
-        const string ScenePath = "Assets/_Project/Scenes/Lab.unity";
+        const string ScenePath = "Assets/Scenes/Lab.unity";
         const string MatDir = "Assets/_Project/Materials";
         const string RigCopy = "Assets/_Project/Prefabs/XROrigin.prefab";
         const float YawN = 0, YawW = -90, YawS = 180, YawE = 90; // viewer-facing yaw per wall

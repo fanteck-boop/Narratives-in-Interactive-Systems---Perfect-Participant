@@ -26,7 +26,7 @@ namespace PerfectParticipant.Editor
         // Unity.exe -batchmode -projectPath <p> -executeMethod PerfectParticipant.Editor.ValidateScene.ValidateFromCommandLine -quit -logFile <f>
         public static void ValidateFromCommandLine()
         {
-            EditorSceneManager.OpenScene("Assets/_Project/Scenes/Lab.unity");
+            EditorSceneManager.OpenScene("Assets/Scenes/Lab.unity");
             if (!Run()) throw new System.Exception("Lab scene validation failed");
         }
 
