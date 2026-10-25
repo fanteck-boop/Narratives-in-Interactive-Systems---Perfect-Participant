@@ -1121,7 +1121,7 @@ Please remain seated.");
         static void Systems()
         {
             var s = E("Systems", null, Vector3.zero).transform;
-            foreach (var n in new[] { "ExperimentRunner", "InputSampler", "DialogueManager", "RoomStateController", "TallyWall", "SessionLogger", "DebugPanel", "SeatedMode" })
+            foreach (var n in new[] { "ExperimentRunner", "InputSampler", "DialogueManager", "RoomStateController", "TallyWall", "SessionLogger", "DebugPanel", "SeatedMode", "Footsteps" })
                 TryAdd(E(n, s, Vector3.zero), n);
         }
 

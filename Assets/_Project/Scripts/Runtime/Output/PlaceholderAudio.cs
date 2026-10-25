@@ -57,6 +57,21 @@ namespace PerfectParticipant
             return d;
         });
 
+        // Soft shoe on tile: a low knock under a short filtered scuff.
+        public static AudioClip Step() => Get("step", () =>
+        {
+            var d = new float[(int)(Rate * 0.12f)];
+            var r = new System.Random(7);
+            float lp = 0f;
+            for (int i = 0; i < d.Length; i++)
+            {
+                float t = (float)i / Rate;
+                lp += (((float)r.NextDouble() - 0.5f) - lp) * 0.15f;
+                d[i] = (Mathf.Sin(6.2831853f * 70f * t) * Mathf.Exp(-t * 40f) * 0.6f + lp * Mathf.Exp(-t * 30f) * 1.5f) * 0.8f;
+            }
+            return d;
+        });
+
         public static AudioClip Click() => Get("click", () =>
         {
             var d = new float[(int)(Rate * 0.04f)];
