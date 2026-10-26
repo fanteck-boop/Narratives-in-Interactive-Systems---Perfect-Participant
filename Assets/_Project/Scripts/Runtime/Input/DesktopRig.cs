@@ -7,7 +7,7 @@ namespace PerfectParticipant
 {
     // Desk fallback. Put on XR Origin root. Off when headset or XR simulator present.
     // WASD move, mouse look, E grab (what the crosshair points at); while holding, tap E = put down, hold E = charge a throw
-    // (released on E up), Space = full throw, F poke button, Q hand behind head (hide test), C crouch.
+    // (released on E up), Space = full throw, scroll / R turn what you hold, F poke button, Q hand behind head (hide test), C crouch.
     public class DesktopRig : MonoBehaviour
     {
         [SerializeField] float speed = 1.5f, look = 0.1f, reach = 1.5f;
@@ -86,7 +86,14 @@ namespace PerfectParticipant
             // hold C to crouch: the key is taped under the lab table
             float eye = transform.position.y + (k.cKey.isPressed ? CrouchHeight() : StandEye);
             cam.position = new Vector3(cam.position.x, Mathf.MoveTowards(cam.position.y, eye, 3f * Time.deltaTime), cam.position.z);
-            if (held) Carry();
+            if (held)
+            {
+                // turn what you hold: scroll spins it, R tips it toward you (to read labels and folders)
+                float sc = m.scroll.ReadValue().y;
+                if (sc != 0f) heldRot = Quaternion.AngleAxis(Mathf.Sign(sc) * 15f, Vector3.up) * heldRot;
+                if (k.rKey.wasPressedThisFrame) heldRot = Quaternion.AngleAxis(90f, Vector3.right) * heldRot;
+                Carry();
+            }
 
             if (k.eKey.wasPressedThisFrame) { if (held) chargeStart = Time.time; else TryGrab(); }
             if (held && chargeStart >= 0f && k.eKey.wasReleasedThisFrame)

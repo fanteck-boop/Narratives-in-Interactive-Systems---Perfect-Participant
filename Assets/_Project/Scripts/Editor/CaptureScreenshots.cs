@@ -32,6 +32,7 @@ namespace PerfectParticipant.Editor
             new Shot("15_hall_staff", new Vector3(-3.6f, 1.7f, -19.7f), new Vector3(-7f, 1.9f, -19.7f)),
             new Shot("16_hall_gallery", new Vector3(1.5f, 1.7f, -17.5f), new Vector3(7f, 3.2f, -21.5f)),
             new Shot("17_waiting_0418", new Vector3(4.5f, 1.6f, -16.7f), new Vector3(8.6f, 1.2f, -16.7f)),
+            new Shot("18_hall_door_closed", new Vector3(0.6f, 1.4f, -13.2f), new Vector3(-0.45f, 1.1f, -14.15f)), // side slits used to show the Hall
         };
 
         [MenuItem("Perfect Participant/Capture Screenshots")]

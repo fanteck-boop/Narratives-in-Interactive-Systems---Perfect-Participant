@@ -453,10 +453,10 @@ namespace PerfectParticipant.Editor
             foreach (int s in new[] { -1, 1 })
             {
                 if (s < 0) W("HallWallSide", new Vector3(s * (hw + w * 0.5f), ht * 0.5f, cz), new Vector3(w, ht, d), wall);
-                float inner = 0.5f, outer = hw + w; // near wall either side of the 1 m doorway (frame at +-0.5)
+                float inner = 0.45f, outer = hw + w; // doorway as wide as the 0.9 m leaf: at 1 m the lit Hall showed through 5 cm slits
                 W("HallWallNear", new Vector3(s * (inner + outer) * 0.5f, ht * 0.5f, wz), new Vector3(outer - inner, ht, w), wall);
             }
-            W("HallWallNearTop", new Vector3(0, (2.1f + ht) * 0.5f, wz), new Vector3(1f, ht - 2.1f, w), wall);
+            W("HallWallNearTop", new Vector3(0, (2.1f + ht) * 0.5f, wz), new Vector3(0.9f, ht - 2.1f, w), wall);
 
             var panel = M("LightPanel", G(0.9f), 0.1f, new Color(1f, 0.96f, 0.9f) * 1.6f);
             foreach (float lx in new[] { -3.5f, 3.5f })
@@ -717,9 +717,11 @@ namespace PerfectParticipant.Editor
                         var scr = Qd("Room4Screen", null, onBack(1.5f, 0.01f), new Vector2(1.4f, 0.8f),
                             M("Screen", new Color(0.02f, 0.05f, 0.04f), 0.5f, new Color(0.03f, 0.1f, 0.07f)), new Vector3(0, yaw + 180f, 0));
                         // RoomStateController rewrites it with the live tally (productive interactivity, the facility's view of you)
-                        T("ScreenText", scr.transform, new Vector3(0, 0, -0.002f), Vector3.zero, "PARTICIPANT 0417\n<size=60%>PLEASE KEEP LOOKING</size>", 0.08f, new Vector2(1.3f, 0.7f), new Color(0.5f, 1f, 0.7f));
+                        // on the room, not the 1.4 x 0.8 quad: as its child the text was stretched and ran past the screen edge
+                        var st = T("ScreenText", r, onBack(1.5f, 0.013f), new Vector3(0, yaw + 180f, 0), "PARTICIPANT 0417\n<size=60%>PLEASE KEEP LOOKING</size>", 0.08f, new Vector2(1.25f, 0.7f), new Color(0.5f, 1f, 0.7f));
+                        st.enableAutoSizing = true; st.fontSizeMin = 0.2f; st.fontSizeMax = 0.8f; // the live tally line is longer
                         // a camera over the door and a small live feed beside the screen: looking at yourself is looking away (point-of-view technologies, 17.3)
-                        var cam4 = Cb("Room4Camera", r, new Vector3(side * (h + w + 0.12f), 2.45f, cz - 1.3f), new Vector3(0.1f, 0.1f, 0.16f), M("Cam", G(0.18f), 0.3f));
+                        var cam4 = Cb("Room4Camera", r, new Vector3(side * (h + w + 0.25f), 2.4f, cz - 1.2f), new Vector3(0.1f, 0.1f, 0.16f), M("Cam", G(0.18f), 0.3f));
                         cam4.transform.rotation = Quaternion.LookRotation(onBack(1.5f, 0.01f) - cam4.transform.position);
                         Cb("RecLed", cam4.transform, new Vector3(0.3f, 0.3f, 0.5f), Vector3.one * 0.2f, M("RecLed", new Color(0.6f, 0.05f, 0.04f), 0.3f, new Color(1.2f, 0.1f, 0.05f)));
                         var feedAt = onBack(1.45f, 0.012f) + new Vector3(0, 0, 1.05f);

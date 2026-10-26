@@ -33,6 +33,7 @@ Open `Lab`, press **Play**, click in the Game view to capture the mouse.
 | W A S D, mouse | Walk and look |
 | E | Grab what the crosshair points at. While holding: tap E to put down, hold E to charge a throw |
 | Space | Throw what you hold |
+| Mouse wheel / R | Turn what you hold (spin / tip toward you) |
 | F | Press a button |
 | C | Crouch (next to a chair: sit) |
 | Q | Hand behind your head |

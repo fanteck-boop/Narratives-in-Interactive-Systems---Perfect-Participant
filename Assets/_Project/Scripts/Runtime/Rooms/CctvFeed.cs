@@ -20,6 +20,7 @@ namespace PerfectParticipant
             cam.transform.SetParent(src, false);
             cam.transform.localPosition = new Vector3(0f, 0f, 0.12f); // just in front of the lens
             cam.fieldOfView = 75f;
+            cam.nearClipPlane = 0.05f;                                // default 0.3 cut through a nearby wall and showed the next room
             cam.stereoTargetEye = StereoTargetEyeMask.None;          // never draws into the headset
             cam.targetTexture = rt;
             cam.enabled = false;                                      // rendered by hand below

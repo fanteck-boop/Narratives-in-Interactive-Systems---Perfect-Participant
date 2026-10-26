@@ -28,7 +28,7 @@ namespace PerfectParticipant
             if (travelled < Stride) return;
             travelled = 0f;
             src.pitch = Random.Range(0.85f, 1.1f);
-            src.PlayOneShot(PlaceholderAudio.Step(), 0.35f);
+            src.PlayOneShot(PlaceholderAudio.Step(), 0.1f); // 0.35 was too loud (playtest)
         }
     }
 }
